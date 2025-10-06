@@ -1,7 +1,10 @@
 <?php
 
 namespace App\Services;
+
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
+
 class AutotaskService
 {
     protected function autotaskRequest()
@@ -14,32 +17,50 @@ class AutotaskService
         ]);
     }
 
-    public function getAutoTaskCompany($id)
+    protected function unwrapItem(array $json): ?array
     {
-        $url = 'https://webservices19.autotask.net/atservicesrest/v1.0/Companies/' . $id;
-
-        $response = $this->autotaskRequest()->get($url);
-
-        if ($response->successful()) {
-            $json = $response->json();
-            return $json['item'] ?? null; // unwrap item
+        if (isset($json['item'])) {
+            return $json['item'];
         }
-
+        if (isset($json['items'][0])) {
+            return $json['items'][0];
+        }
         return null;
     }
 
-    public function getAutoTaskInvoice($id)
+    public function getAutoTaskCompany($id): ?array
     {
-        $url = 'https://webservices19.autotask.net/atservicesrest/v1.0/Invoices/' . $id;
+        try {
+            $url = "https://webservices19.autotask.net/atservicesrest/v1.0/Companies/{$id}";
+            $response = $this->autotaskRequest()->get($url);
 
-        $response = $this->autotaskRequest()->get($url);
+            if ($response->successful()) {
+                return $this->unwrapItem($response->json());
+            }
 
-        if ($response->successful()) {
-            $json = $response->json();
-            return $json['item'] ?? null; // unwrap just like with companies
+            Log::warning("Autotask company fetch failed: {$response->status()} for ID {$id}");
+            return null;
+        } catch (\Throwable $e) {
+            Log::error('Autotask company request error: ' . $e->getMessage());
+            return null;
         }
-
-        return null;
     }
 
+    public function getAutoTaskInvoice($id): ?array
+    {
+        try {
+            $url = "https://webservices19.autotask.net/atservicesrest/v1.0/Invoices/{$id}";
+            $response = $this->autotaskRequest()->get($url);
+
+            if ($response->successful()) {
+                return $this->unwrapItem($response->json());
+            }
+
+            Log::warning("Autotask invoice fetch failed: {$response->status()} for ID {$id}");
+            return null;
+        } catch (\Throwable $e) {
+            Log::error('Autotask invoice request error: ' . $e->getMessage());
+            return null;
+        }
+    }
 }
