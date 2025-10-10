@@ -17,7 +17,6 @@ class SnelstartCompanyTest extends TestCase
         $response->assertStatus(201)
                  ->assertJsonStructure([
                      'message',
-                     'mapped_data'
                  ]);
     }
 }

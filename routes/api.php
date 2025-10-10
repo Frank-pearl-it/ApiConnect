@@ -7,6 +7,9 @@ use App\Http\Controllers\AutoTaskCompanyController;
 use App\Http\Controllers\AutoTaskInvoiceController;
 
 // COMPANIES
+// get a company from snelstart
+Route::get('/autotask/companies/{id}', [AutoTaskCompanyController::class, 'getAutoTaskCompanyById'])
+    ->name('autotask.get');
 
 // Add a company to SnelStart (from Autotask)
 Route::post('/snelstart/companies/{id}', [AutoTaskCompanyController::class, 'addSnelstartCompany'])

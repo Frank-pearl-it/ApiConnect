@@ -22,6 +22,26 @@ class AutoTaskCompanyController extends Controller
         $this->mapService = $mapService;
         $this->snelstartService = $snelstartService;
     }
+    // TO BE EDITED SO THAT IT GETS THE OPEN TICKETS AS WELL
+    // https://{{webservices[n]}}.autotask.net/atservicesrest/v1.0/tickets/query?search={"filter":[{"op":"noteq","field":"Status","value":5},{"op":"eq","field":"CompanyID","value":175}]}
+    public function getAutoTaskCompanyById($id)
+    {
+        try {
+            $company = $this->autotaskService->getAutoTaskCompany($id);
+
+            if (!$company) {
+                return response()->json(['message' => 'Autotask company not found'], 404);
+            }
+
+            return response()->json([
+                'message' => 'Autotask company retrieved successfully',
+                'data' => $company,
+            ], 200);
+        } catch (\Throwable $e) {
+            \Log::error('Error fetching Autotask company: ' . $e->getMessage());
+            return response()->json(['message' => 'Internal error while fetching company'], 500);
+        }
+    }
 
     public function addSnelstartCompany($id)
     {
@@ -32,7 +52,7 @@ class AutoTaskCompanyController extends Controller
             if (!$company) {
                 return response()->json(['message' => 'Autotask company not found'], 404);
             }
-            $equalCompany = $this->snelstartService->getEqualCompany($company['taxID'] ?? '');
+            $equalCompany = $this->snelstartService->getEqualCompany($company['adress1'] ?? '');
             log::info($equalCompany);
             if ($equalCompany && !empty($equalCompany['items'])) {
                 return response()->json(['message' => 'Company with this BTW number already exists in SnelStart'], 409);
@@ -45,16 +65,10 @@ class AutoTaskCompanyController extends Controller
                 'autotask_company_id' => $id,
                 'mapped_data' => $mappedData
             ]);
- 
+
             // return $this->snelstartService->addSnelstartCompany($mappedData);
 
-            // return response()->json([
-            //     'message' => 'Company mapped successfully (logged)',
-            //     'mapped_data' => $mappedData,
-            // ], 200);
-                        return response()->json(['message' => 'Company added succesfully'], 201);
-
-
+            return response()->json(['message' => 'Company added succesfully'], 201);
         } catch (\Throwable $e) {
             Log::error('Error adding SnelStart company', [
                 'autotask_company_id' => $id,

@@ -108,6 +108,33 @@ class SnelstartService
         }
     }
 
+    // FUNCTION TO REPLACE ABOVE FOR BETTER FILTERING (SOME METHODS WILL NEED TO ALTER HOW IT GETS THE COMPANY )
+    //     public function getEqualCompany(?string $address1, ?string $companyName)
+// {
+//     if (empty($address1) || empty($companyName)) {
+//         return null;
+//     }
+
+    //     try {
+//         // Combine both filters: address1 AND companyName
+//         $filter = "adres1 eq '{$address1}' and naam eq '{$companyName}'";
+//         $encoded = rawurlencode($filter);
+
+    //         $url = $this->baseUrl() . "/relaties?filter={$encoded}";
+//         $response = $this->snelstartRequest()->get($url);
+
+    //         if ($response->successful()) {
+//             return $response->json();
+//         }
+
+    //         Log::warning("Failed to fetch equal company for address '{$address1}' and name '{$companyName}': " . $response->body());
+//         return null;
+//     } catch (\Throwable $e) {
+//         Log::error('Error fetching equal company: ' . $e->getMessage());
+//         return null;
+//     }
+// }
+
     /* =======================================================
        ==================   INVOICES  ========================
        ======================================================= */
