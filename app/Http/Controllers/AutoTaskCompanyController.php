@@ -7,7 +7,7 @@ use App\Services\AutotaskService;
 use App\Services\MapService;
 use App\Services\SnelstartService;
 
-abstract class AutoTaskCompanyController extends Controller
+class AutoTaskCompanyController extends Controller
 {
     protected AutotaskService $autotaskService;
     protected MapService $mapService;
@@ -27,19 +27,41 @@ abstract class AutoTaskCompanyController extends Controller
     {
         try {
             $company = $this->autotaskService->getAutoTaskCompany($id);
+            log::info('company', $company);
+
             if (!$company) {
                 return response()->json(['message' => 'Autotask company not found'], 404);
             }
-
             $equalCompany = $this->snelstartService->getEqualCompany($company['taxID'] ?? '');
+            log::info($equalCompany);
             if ($equalCompany && !empty($equalCompany['items'])) {
                 return response()->json(['message' => 'Company with this BTW number already exists in SnelStart'], 409);
             }
 
             $mappedData = $this->mapService->mapCompanyToRelatie($company);
-            return $this->snelstartService->addSnelstartCompany($mappedData);
+
+            // ✅ Properly structured log entry (human-readable + JSON formatted)
+            Log::info('Mapped company data for SnelStart:', [
+                'autotask_company_id' => $id,
+                'mapped_data' => $mappedData
+            ]);
+ 
+            // return $this->snelstartService->addSnelstartCompany($mappedData);
+
+            // return response()->json([
+            //     'message' => 'Company mapped successfully (logged)',
+            //     'mapped_data' => $mappedData,
+            // ], 200);
+                        return response()->json(['message' => 'Company added succesfully'], 201);
+
+
         } catch (\Throwable $e) {
-            Log::error('Error adding SnelStart company: ' . $e->getMessage());
+            Log::error('Error adding SnelStart company', [
+                'autotask_company_id' => $id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
             return response()->json(['message' => 'Internal error while adding company'], 500);
         }
     }

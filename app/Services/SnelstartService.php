@@ -1,121 +1,192 @@
 <?php
 
 namespace App\Services;
+
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
+
 class SnelstartService
 {
-    public function getSnelStartToken()
+    protected function baseUrl(): string
+    {
+        return 'https://b2bapi.snelstart.nl/v2';
+    }
+
+    protected function token(): string
     {
         return env('SNELSTART_API_TOKEN');
     }
-    public function addSnelstartCompany($request)
+
+    protected function snelstartRequest()
     {
-        $url = 'https://b2bapi.snelstart.nl/v2/relaties';
-
-        // Send the request to the API
-        $response = Http::withToken($this->getSnelStartToken())->post($url, $request);
-
-        // Handle the response
-        if ($response->successful()) {
-            return response()->json(['message' => 'Company added successfully']);
-        }
-
-        return response()->json(['message' => 'Failed to add company'], 500);
+        return Http::withToken($this->token())
+            ->withHeaders([
+                'Accept' => 'application/json',
+                'Content-Type' => 'application/json',
+            ]);
     }
 
+    /* =======================================================
+       ===============   COMPANIES (RELATIES)  ================
+       ======================================================= */
 
-    public function updateSnelstartCompany($id, $request)
+    public function addSnelstartCompany(array $request)
     {
-        $url = 'https://b2bapi.snelstart.nl/v2/relaties/' . $id;
+        try {
+            $url = $this->baseUrl() . '/relaties';
+            $response = $this->snelstartRequest()->post($url, $request);
 
-        // Send the request to the API
-        $response = Http::withToken($this->getSnelStartToken())->put($url, $request);
+            if ($response->successful()) {
+                return response()->json(['message' => 'Company added successfully', 'data' => $response->json()]);
+            }
 
-        // Handle the response
-        if ($response->successful()) {
-            return response()->json(['message' => 'Company updated successfully']);
+            Log::warning('Failed to add company: ' . $response->body());
+            return response()->json(['message' => 'Failed to add company', 'error' => $response->json()], $response->status());
+        } catch (\Throwable $e) {
+            Log::error('Error adding company: ' . $e->getMessage());
+            return response()->json(['message' => 'Internal error while adding company'], 500);
         }
-        return response()->json(['message' => 'Failed to update company'], 500);
     }
 
-    public function deleteSnelstartCompany($id)
+    public function updateSnelstartCompany(string $id, array $request)
     {
-        $url = 'https://b2bapi.snelstart.nl/v2/relaties/' . $id;
+        try {
+            $url = $this->baseUrl() . '/relaties/' . $id;
+            $response = $this->snelstartRequest()->put($url, $request);
 
-        // Send the request to the API
-        $response = Http::withToken($this->getSnelStartToken())->delete($url);
+            if ($response->successful()) {
+                return response()->json(['message' => 'Company updated successfully', 'data' => $response->json()]);
+            }
 
-        // Handle the response
-        if ($response->successful()) {
-            return response()->json(['message' => 'Company deleted successfully']);
+            Log::warning('Failed to update company: ' . $response->body());
+            return response()->json(['message' => 'Failed to update company', 'error' => $response->json()], $response->status());
+        } catch (\Throwable $e) {
+            Log::error('Error updating company: ' . $e->getMessage());
+            return response()->json(['message' => 'Internal error while updating company'], 500);
         }
-
-        return response()->json(['message' => 'Failed to delete company'], 500);
     }
 
-    public function getEqualCompany($btwNummer)
+    public function deleteSnelstartCompany(string $id)
     {
-        $url = 'https://b2bapi.snelstart.nl/v2/relaties?filter=btwNummer eq ' . $btwNummer;
+        try {
+            $url = $this->baseUrl() . '/relaties/' . $id;
+            $response = $this->snelstartRequest()->delete($url);
 
-        // Send the request to the API
-        $response = Http::withToken($this->getSnelStartToken())->get($url);
+            if ($response->successful()) {
+                return response()->json(['message' => 'Company deleted successfully']);
+            }
 
-        // Handle the response
-        if ($response->successful()) {
-            return $response->json();
+            Log::warning('Failed to delete company: ' . $response->body());
+            return response()->json(['message' => 'Failed to delete company', 'error' => $response->json()], $response->status());
+        } catch (\Throwable $e) {
+            Log::error('Error deleting company: ' . $e->getMessage());
+            return response()->json(['message' => 'Internal error while deleting company'], 500);
         }
-
-        return null;
     }
 
-    public function getEqualInvoice($externalId)
+    public function getEqualCompany(?string $btwNummer)
     {
-        $url = 'https://b2bapi.snelstart.nl/v2/verkoopboekingen?filter=externId eq ' . $externalId;
-
-        // Send the request to the API
-        $response = Http::withToken($this->getSnelStartToken())->get($url);
-
-        // Handle the response
-        if ($response->successful()) {
-            return $response->json();
+        if (empty($btwNummer)) {
+            return null;
         }
 
-        return null;
+        try {
+            $encoded = rawurlencode("btwNummer eq '{$btwNummer}'");
+            $url = $this->baseUrl() . "/relaties?filter={$encoded}";
+
+            $response = $this->snelstartRequest()->get($url);
+
+            if ($response->successful()) {
+                return $response->json();
+            }
+
+            Log::warning("Failed to fetch equal company for BTW {$btwNummer}: " . $response->body());
+            return null;
+        } catch (\Throwable $e) {
+            Log::error('Error fetching equal company: ' . $e->getMessage());
+            return null;
+        }
+    }
+
+    /* =======================================================
+       ==================   INVOICES  ========================
+       ======================================================= */
+
+    public function getEqualInvoice(?string $externalId)
+    {
+        if (empty($externalId)) {
+            return null;
+        }
+
+        try {
+            $encoded = rawurlencode("externId eq '{$externalId}'");
+            $url = $this->baseUrl() . "/verkoopboekingen?filter={$encoded}";
+
+            $response = $this->snelstartRequest()->get($url);
+
+            if ($response->successful()) {
+                return $response->json();
+            }
+
+            Log::warning("Failed to fetch equal invoice for externId {$externalId}: " . $response->body());
+            return null;
+        } catch (\Throwable $e) {
+            Log::error('Error fetching equal invoice: ' . $e->getMessage());
+            return null;
+        }
     }
 
     public function addSnelstartInvoice(array $invoice)
     {
-        $url = 'https://b2bapi.snelstart.nl/v2/verkoopboekingen';
+        try {
+            $url = $this->baseUrl() . '/verkoopboekingen';
+            $response = $this->snelstartRequest()->post($url, $invoice);
 
-        $response = Http::withToken($this->getSnelStartToken())
-            ->post($url, $invoice);
+            if ($response->successful()) {
+                return response()->json(['message' => 'Invoice added successfully', 'data' => $response->json()]);
+            }
 
-        return $response->successful()
-            ? response()->json(['message' => 'Invoice added successfully'])
-            : response()->json(['message' => 'Failed to add invoice'], 500);
+            Log::warning('Failed to add invoice: ' . $response->body());
+            return response()->json(['message' => 'Failed to add invoice', 'error' => $response->json()], $response->status());
+        } catch (\Throwable $e) {
+            Log::error('Error adding invoice: ' . $e->getMessage());
+            return response()->json(['message' => 'Internal error while adding invoice'], 500);
+        }
     }
 
-    public function updateSnelstartInvoice($id, array $invoice)
+    public function updateSnelstartInvoice(string $id, array $invoice)
     {
-        $url = 'https://b2bapi.snelstart.nl/v2/verkoopboekingen/' . $id;
+        try {
+            $url = $this->baseUrl() . '/verkoopboekingen/' . $id;
+            $response = $this->snelstartRequest()->put($url, $invoice);
 
-        $response = Http::withToken($this->getSnelStartToken())
-            ->put($url, $invoice);
+            if ($response->successful()) {
+                return response()->json(['message' => 'Invoice updated successfully', 'data' => $response->json()]);
+            }
 
-        return $response->successful()
-            ? response()->json(['message' => 'Invoice updated successfully'])
-            : response()->json(['message' => 'Failed to update invoice'], 500);
+            Log::warning('Failed to update invoice: ' . $response->body());
+            return response()->json(['message' => 'Failed to update invoice', 'error' => $response->json()], $response->status());
+        } catch (\Throwable $e) {
+            Log::error('Error updating invoice: ' . $e->getMessage());
+            return response()->json(['message' => 'Internal error while updating invoice'], 500);
+        }
     }
 
-    public function deleteSnelstartInvoice($id)
+    public function deleteSnelstartInvoice(string $id)
     {
-        $url = 'https://b2bapi.snelstart.nl/v2/verkoopboekingen/' . $id;
+        try {
+            $url = $this->baseUrl() . '/verkoopboekingen/' . $id;
+            $response = $this->snelstartRequest()->delete($url);
 
-        $response = Http::withToken($this->getSnelStartToken())
-            ->delete($url);
+            if ($response->successful()) {
+                return response()->json(['message' => 'Invoice deleted successfully']);
+            }
 
-        return $response->successful()
-            ? response()->json(['message' => 'Invoice deleted successfully'])
-            : response()->json(['message' => 'Failed to delete invoice'], 500);
+            Log::warning('Failed to delete invoice: ' . $response->body());
+            return response()->json(['message' => 'Failed to delete invoice', 'error' => $response->json()], $response->status());
+        } catch (\Throwable $e) {
+            Log::error('Error deleting invoice: ' . $e->getMessage());
+            return response()->json(['message' => 'Internal error while deleting invoice'], 500);
+        }
     }
 }

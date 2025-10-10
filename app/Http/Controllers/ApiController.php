@@ -5,7 +5,7 @@ use Illuminate\Support\Facades\Http;
 use App\Services\AutotaskService;
 use App\Services\MapService;
 use App\Services\SnelstartService;
-abstract class ApiController extends Controller
+class ApiController extends Controller
 {
     protected AutotaskService $autotaskService;
     protected MapService $mapService;

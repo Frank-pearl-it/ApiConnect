@@ -7,7 +7,7 @@ use App\Services\AutotaskService;
 use App\Services\MapService;
 use App\Services\SnelstartService;
 
-abstract class AutoTaskInvoiceController extends Controller
+ class AutoTaskInvoiceController extends Controller
 {
     protected AutotaskService $autotaskService;
     protected MapService $mapService;
