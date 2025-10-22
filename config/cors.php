@@ -19,7 +19,7 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => ['https://webservices19.autotask.net/atservicesrest/*', 'https://b2bapi.snelstart.nl/v2/*'],
+    'allowed_origins' => ['https://webservices19.autotask.net/atservicesrest/*', 'https://b2bapi.snelstart.nl/v2/*', 'http://localhost:9000/*', 'https://irma.to.be.filled'],
 
     'allowed_origins_patterns' => [],
 

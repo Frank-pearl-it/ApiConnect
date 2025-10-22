@@ -7,6 +7,7 @@ use App\Http\Controllers\AutoTaskCompanyController;
 use App\Http\Controllers\AutoTaskInvoiceController;
 
 // COMPANIES
+
 // get a company from snelstart
 Route::get('/autotask/companies/{id}', [AutoTaskCompanyController::class, 'getAutoTaskCompanyById'])
     ->name('autotask.get');
@@ -37,3 +38,7 @@ Route::put('/snelstart/invoices/{id}', [AutoTaskInvoiceController::class, 'updat
 // Delete an invoice from SnelStart (by Autotask ID passed in request body)
 Route::delete('/snelstart/invoices', [AutoTaskInvoiceController::class, 'deleteSnelstartInvoice'])
     ->name('snelstart.delete.invoice');
+
+
+
+// Routes to be used by the frontend application
