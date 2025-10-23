@@ -1,51 +1,55 @@
 <template>
-  <q-page style="padding: 0" class="q-pa-md window-height window-width row justify-center items-center" id="container">
+  <q-page style="padding: 0;" class="q-pa-md window-height window-width row justify-center items-center" id="container" >
     <div id="back">
       <canvas id="canvas" class="canvas-back"></canvas>
       <div class="backRight"></div>
       <div class="backLeft"></div>
     </div>
 
-    <div id="slideBox">
+    <div id="slideBox" >
       <div class="topLayer">
         <div class="left hide-on-mobile"></div> <!-- Hide left on mobile -->
         <div class="right">
           <div id="image">
-            <img src="../assets/logo.svg" alt="Houvast logo" class="logo" width="275" />
+            <img src="../assets/logo.svg" alt="Houvast logo" class="logo" width="675" style="margin-bottom: -100px;"/>
           </div>
 
           <div v-show="this.userType === null" class="content">
-            <div class="row q-col-gutter-md justify-center">
-              <div class="col-12 col-sm-6">
-                <q-card @click="handleMedewerkerClick()" style="background-color: #d75395;" class="rolCard"
-                  :class="{ 'loading-card': medewerkersClickLoading }">
-                  <q-card-section>
+            <h2 class="login-heading">Login met:</h2>
+            <div class="row q-col-gutter-lg justify-center">
+              <div class="col-12 col-sm-5">
+                <q-card @click="handleOfficeClick()" class="rolCard office-card"
+                  :class="{ 'loading-card': officeClickLoading }">
+                  <q-card-section class="card-content">
                     <div class="centerContent dynamic-avatar-container">
-                      <!-- Show loading spinner when clicked but URL not ready -->
-                      <q-spinner v-if="medewerkersClickLoading" color="white" size="3em" class="dynamic-avatar" />
-                      <q-avatar v-else class="dynamic-avatar" color="white">
-                        <q-icon class="dynamic-icon" name="groups"></q-icon>
+                      <q-spinner v-if="officeClickLoading" color="white" size="4em" :thickness="3" />
+                      <q-avatar v-else class="dynamic-avatar" size="80px">
+                        <q-icon class="dynamic-icon" name="business" size="48px"></q-icon>
                       </q-avatar>
                     </div>
                     <div class="centerContent text-container">
-                      <span>
-                        <b>{{ medewerkersClickLoading ? 'LADEN...' : 'MEDEWERKER' }}</b>
-                      </span>
+                      <div class="card-title">
+                        {{ officeClickLoading ? 'LADEN...' : 'OFFICE' }}
+                      </div>
+                      <div class="card-subtitle">
+                        {{ officeClickLoading ? '' : 'Microsoft 365 Login' }}
+                      </div>
                     </div>
                   </q-card-section>
                 </q-card>
               </div>
 
-              <div class="col-12 col-sm-6">
-                <q-card @click="this.initLogin('CLIENT')" style="background-color: #2ab6cb;" class="rolCard">
-                  <q-card-section>
+              <div class="col-12 col-sm-5">
+                <q-card @click="this.initLogin('2FA')" class="rolCard twofa-card">
+                  <q-card-section class="card-content">
                     <div class="centerContent dynamic-avatar-container">
-                      <q-avatar class="dynamic-avatar" color="white">
-                        <q-icon class="dynamic-icon" name="emoji_people"></q-icon>
+                      <q-avatar class="dynamic-avatar" size="80px">
+                        <q-icon class="dynamic-icon" name="lock" size="48px"></q-icon>
                       </q-avatar>
                     </div>
                     <div class="centerContent text-container">
-                      <span><b>CLIËNT</b></span>
+                      <div class="card-title">2FA</div>
+                      <div class="card-subtitle">Two-Factor Login</div>
                     </div>
                   </q-card-section>
                 </q-card>
@@ -53,50 +57,86 @@
             </div>
           </div>
 
-          <div v-if="this.userType === 'CLIENT'" class="content">
-            <q-form :greedy='true' @submit.prevent="this.clientLoginProcedure()">
-              <div v-show="this.client === null">
-                <h2><b>Wat is je e-mail?</b></h2>
+          <div v-if="this.userType === '2FA'" class="content">
+            <q-form :greedy='true' @submit.prevent="this.twoFactorLoginProcedure()">
+              <!-- Email and Password Step -->
+              <div v-show="this.loginStep === 'credentials'">
+                <h2><b>Login</b></h2>
                 <div class="form-element form-stack">
                   <q-input ref="emailInput" label="E-mail"
                     :rules="[val => val && val.length > 0 || 'Dit veld mag niet leeg zijn.']" v-model="this.form.email"
                     autofocus></q-input>
                 </div>
-              </div>
-
-              <div v-if="this.client !== null && !this.passwordNeedsReset">
-                <h2><b>Wat is je wachtwoord?</b></h2>
-                <div ref="passwordInput" class="form-element form-stack">
-                  <q-input autofocus :type="isPwd ? 'password' : 'text'" id="password" label="Wachtwoord"
-                    :rules="[val => !client || (val && val.length > 0) || 'Dit veld mag niet leeg zijn.']"
-                    type="password" v-model="this.form.password">
+                <div class="form-element form-stack">
+                  <q-input :type="isPwd ? 'password' : 'text'" id="password" label="Wachtwoord"
+                    :rules="[val => val && val.length > 0 || 'Dit veld mag niet leeg zijn.']"
+                    v-model="this.form.password">
                     <template v-slot:append>
                       <q-icon :name="isPwd ? 'visibility_off' : 'visibility'" class="cursor-pointer"
                         @click="isPwd = !isPwd"></q-icon>
                     </template>
                   </q-input>
-
                 </div>
               </div>
 
-              <div v-if="passwordNeedsReset">
+              <!-- Configure 2FA Step -->
+              <div v-if="this.loginStep === 'configure'">
+                <h2><b>Configureer je 2FA</b></h2>
+                <div class="row">
+                  <div class="col-9">
+                    <div style="padding-right: 12%;" class="form-element form-stack">
+                      <q-input label="Code" :rules="[val => val && val.length > 0 || 'Dit veld mag niet leeg zijn.']"
+                        v-model="this.form.twoFactorCode" autofocus></q-input>
+                    </div>
+                  </div>
+                  <div class="col">
+                    <div id="qrDiv" class="qr-container">
+                      <q-inner-loading :showing="this.loadingQr">
+                        <q-spinner color="primary" class="spinner-size"></q-spinner>
+                      </q-inner-loading>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Authenticate 2FA Step -->
+              <div v-if="this.loginStep === 'authenticate'">
+                <h2><b>Authenticeer je 2FA</b></h2>
+                <div class="row">
+                  <div class="col-9">
+                    <div style="padding-right: 12%;" class="form-element form-stack">
+                      <q-input label="Code / Recovery code"
+                        :rules="[val => val && val.length > 0 || 'Dit veld mag niet leeg zijn.']"
+                        v-model="this.form.twoFactorAuthCode" autofocus></q-input>
+                    </div>
+                  </div>
+                  <div class="col">
+                    <div class="qr-container">
+                      <q-icon size="10rem" name="verified_user" class="full-size-icon" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Reset Password Step -->
+              <div v-if="this.loginStep === 'resetPassword'">
                 <h2><b>Pas je wachtwoord aan</b></h2>
                 <div ref="newPasswordInput" class="form-element form-stack">
-                  <q-input standard style="margin-top: 1vh" v-model="this.form.newPassword" label="New password"
-                    :type="isPwd ? 'password' : 'text'" id="password" :rules="passwordNeedsReset ? [
+                  <q-input standard style="margin-top: 1vh" v-model="this.form.newPassword" label="Nieuw wachtwoord"
+                    :type="isPwd ? 'password' : 'text'" id="password" :rules="[
                       val => val && val.length > 0 || 'Dit veld mag niet leeg zijn.'
-                    ] : []" dense autofocus>
+                    ]" dense autofocus>
                     <template v-slot:append>
                       <q-icon :name="isPwd ? 'visibility_off' : 'visibility'" class="cursor-pointer"
                         @click="isPwd = !isPwd"></q-icon>
                     </template>
                   </q-input>
 
-                  <q-input standard v-model="this.form.password_confirm" label="Password confirm"
-                    :type="isPwd ? 'password' : 'text'" id="password" :rules="passwordNeedsReset ? [
+                  <q-input standard v-model="this.form.password_confirm" label="Bevestig wachtwoord"
+                    :type="isPwd ? 'password' : 'text'" id="password" :rules="[
                       val => val && val.length > 0 || 'Dit veld mag niet leeg zijn.',
-                      val => val === form.newPassword || 'Passwords must match.'
-                    ] : []" dense>
+                      val => val === form.newPassword || 'Wachtwoorden komen niet overeen.'
+                    ]" dense>
                     <template v-slot:append>
                       <q-icon :name="isPwd ? 'visibility_off' : 'visibility'" class="cursor-pointer"
                         @click="isPwd = !isPwd"></q-icon>
@@ -104,18 +144,17 @@
                   </q-input>
                 </div>
               </div>
-
 
               <div class="form-element form-submit">
                 <q-btn icon-right="arrow_forward" :loading="this.loginLoading" class="login" type="submit"
-                  label="Verder"></q-btn>
+                  :label="getButtonLabel()"></q-btn>
 
-                <q-btn style="margin-left: 1vw;" v-if="this.client !== null && this.client.biometricsRegistered === 1"
+                <q-btn style="margin-left: 1vw;" v-if="this.loginStep === 'credentials' && this.client !== null && this.client.biometricsRegistered === 1"
                   icon-right="fingerprint" class="login" @click="this.initBiometricLogin"
                   :loading="this.biometricLoginLoading" type="button" label="Biometrische inlog"></q-btn>
 
                 <q-btn icon-right="fingerprint" :loading="this.loginLoading" class="login" type="button"
-                  v-if="this.passwordNeedsReset" @click="this.registerBiometrics"
+                  v-if="this.loginStep === 'resetPassword'" @click="this.registerBiometrics"
                   label="Registreer biometrisch inloggen"></q-btn>
               </div>
 
@@ -139,14 +178,16 @@ export default defineComponent({
       form: {},
       isPwd: true,
       userType: null,
+      loginStep: 'credentials', // 'credentials', 'configure', 'authenticate', 'resetPassword'
       statusLogin: 'name',
       client: null,
       loginLoading: false,
       biometricLoginLoading: false,
       microsoftLoginUrl: null,
       passwordNeedsReset: false,
-      microsoftUrlLoading: true, // Add loading state for Microsoft URL
-      medewerkersClickLoading: false,
+      microsoftUrlLoading: true,
+      officeClickLoading: false,
+      loadingQr: false,
     }
   },
   mounted() {
@@ -159,11 +200,9 @@ export default defineComponent({
 
         if (!raw) return;
 
-        // If you sometimes store objects: try JSON.parse, otherwise use string as-is
         let message = raw;
         try {
           const parsed = JSON.parse(raw);
-          // support { message: '...' } or plain string in JSON
           if (parsed && typeof parsed === 'object' && parsed.message) message = parsed.message;
           else if (typeof parsed === 'string') message = parsed;
         } catch (e) {
@@ -175,20 +214,18 @@ export default defineComponent({
           data: { message }
         });
 
-        // cleanup
         try { localStorage.removeItem('flashMessage'); } catch (e) { }
-        // If you set a cookie with a custom domain (e.g. '.example.com'), pass that domain here:
-        this.deleteCookie('flashMessage'); // or this.deleteCookie('flashMessage', '.example.com')
-      }, 300); // keep your small delay
+        this.deleteCookie('flashMessage');
+      }, 300);
     });
   },
   beforeMount() {
     get('auth/employee/microsoftUrl').then(response => {
       this.microsoftLoginUrl = response.data;
-      this.microsoftUrlLoading = false; // URL is now loaded
+      this.microsoftUrlLoading = false;
     }).catch(error => {
       popup(error.response);
-      this.microsoftUrlLoading = false; // Still set to false even on error
+      this.microsoftUrlLoading = false;
     })
   },
   methods: {
@@ -207,9 +244,9 @@ export default defineComponent({
 
         if (success) {
           const message = {
-            status: 200, // Ensure popup() gets a valid status
+            status: 200,
             data: {
-              messages: { success: 'Biometrische inlog succesvol geregistreerd!' } // Correctly formatted message
+              messages: { success: 'Biometrische inlog succesvol geregistreerd!' }
             }
           };
           popup(message);
@@ -235,80 +272,102 @@ export default defineComponent({
     initLogin(type) {
       this.userType = type;
 
-      if (this.userType === 'MEDEWERKER') {
+      if (this.userType === 'OFFICE') {
         if (this.microsoftLoginUrl) {
-          // URL is ready, proceed with login
           window.location.href = this.microsoftLoginUrl;
         } else if (!this.microsoftUrlLoading) {
-          // URL failed to load, show error or retry
           popup({ data: { message: 'Microsoft login is not available. Please try again.' } });
         }
-        // If microsoftUrlLoading is true, the loading state is already handled in the template
       }
 
-      if (this.userType === 'CLIENT') {
+      if (this.userType === '2FA') {
         nextTick(() => {
           this.$refs.emailInput?.focus();
         });
       }
     },
 
-    handleMedewerkerClick() {
+    handleOfficeClick() {
       if (this.microsoftUrlLoading) {
-        // Show loading state
-        this.medewerkersClickLoading = true;
-        // Wait for URL to be loaded
+        this.officeClickLoading = true;
         this.waitForMicrosoftUrl();
       } else {
-        // URL is ready or failed, proceed normally
-        this.initLogin('MEDEWERKER');
+        this.initLogin('OFFICE');
       }
     },
 
     waitForMicrosoftUrl() {
       const checkUrl = () => {
         if (!this.microsoftUrlLoading) {
-          // URL loading finished (success or failure)
-          this.medewerkersClickLoading = false;
-          this.initLogin('MEDEWERKER');
+          this.officeClickLoading = false;
+          this.initLogin('OFFICE');
         } else {
-          // Still loading, check again in 100ms
           setTimeout(checkUrl, 100);
         }
       };
       checkUrl();
     },
-    clientLoginProcedure() {
+    twoFactorLoginProcedure() {
       this.loginLoading = true;
 
-      if (this.client === null) {
+      // Handle credentials step (combined email + password)
+      if (this.loginStep === 'credentials') {
         post('auth/client/initLogin', this.form)
           .then(response => {
             this.client = response.data;
-            this.loginLoading = false;
-            nextTick(() => {
-              this.$refs.passwordInput?.focus();
-            });
+            
+            // Check if user needs to configure 2FA
+            if (!response.data.two_factor) {
+              this.loginStep = 'configure';
+              this.loginLoading = false;
+              this.loadingQr = true;
+              
+              // Enable 2FA for the user
+              post('user/two-factor-authentication').then(response => {
+                if (response.status === 200) {
+                  get('user/two-factor-qr-code').then(response => {
+                    document.getElementById('qrDiv').innerHTML = response.data.svg;
+                    this.loadingQr = false;
+                  }).catch(error => {
+                    this.loadingQr = false;
+                    popup(error.response);
+                  });
+                }
+              }).catch(error => {
+                this.loadingQr = false;
+                popup(error.response);
+              });
+            } else {
+              // User has 2FA configured, now finish login and check password
+              post('auth/client/finishLogin', this.form).then(response => {
+                if (response.status === 201) {
+                  // Password needs reset
+                  this.loginStep = 'resetPassword';
+                  this.loginLoading = false;
+                } else {
+                  // Proceed to 2FA authentication
+                  this.loginStep = 'authenticate';
+                  this.loginLoading = false;
+                }
+              }).catch(error => {
+                this.loginLoading = false;
+                popup(error.response);
+              });
+            }
           })
           .catch(error => {
             this.loginLoading = false;
 
             if (error.response) {
-              // Handle CSRF mismatch
               if (error.response.status === 419) {
                 localStorage.setItem('flashMessage', 'Token vernieuwd probeer opnieuw in te loggen');
-
                 document.cookie = 'XSRF-TOKEN=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT';
-
                 setTimeout(() => {
                   window.location.reload();
-                }, 100); // just enough to flush
+                }, 100);
                 return;
               }
 
-
-
-              // Handle normal auth error (non-clients must use Microsoft)
               if (
                 error.response.status === 401 &&
                 error.response.data.messages &&
@@ -317,57 +376,98 @@ export default defineComponent({
                 )
               ) {
                 this.userType = null;
+                this.loginStep = 'credentials';
               }
 
-              // Default popup
               popup(error.response);
             } else {
-              // Fallback if no response (network issue, etc.)
               popup({ data: { message: 'Er ging iets mis. Probeer het later opnieuw.' } });
             }
           });
-      } else if (this.client && !this.passwordNeedsReset) {
-        post('auth/client/finishLogin', this.form).then(response => {
-          if (response.status === 201) {
-            this.passwordNeedsReset = true;
-            this.loginLoading = false;
-            nextTick(() => {
-              this.$refs.newPasswordInput?.focus();
-            });
-          } else {
-            this.loginLoading = false;
-            localStorage.setItem('token', response.data.token)
-            localStorage.setItem('profile', JSON.stringify(this.client))
-            this.$router.push({ name: 'dashboard' })
-          }
-        }).catch(error => {
-          this.loginLoading = false;
-          popup(error.response);
-          if (error.status === 401 && error.data.messages.includes('Non clienten mogen alleen inloggen met Microsoft.')) {
-            this.userType = null;
-          }
-        })
-
-      } else if (this.client && this.passwordNeedsReset) {
-        post('auth/client/changePsw', this.form).then(response => {
-          this.form.password = this.form.newPassword;
-          post('auth/client/finishLogin', this.form).then(response => {
-            this.loginLoading = false;
-            localStorage.setItem('token', response.data.token)
-            localStorage.setItem('profile', JSON.stringify(this.client))
-            this.$router.push({ name: 'dashboard' })
+      }
+      
+      // Handle 2FA configuration
+      else if (this.loginStep === 'configure') {
+        post('user/confirmed-two-factor-authentication', { code: this.form.twoFactorCode })
+          .then(response => {
+            if (response.status === 200) {
+              this.loginLoading = false;
+              localStorage.setItem('token', response.data.token);
+              localStorage.setItem('profile', JSON.stringify(response.data.user));
+              this.$router.push({ name: 'dashboard' });
+            }
           })
-
-        }).catch(error => {
-          this.loginLoading = false;
-          if (error.response) {
+          .catch(error => {
+            this.loginLoading = false;
             popup(error.response);
-          } else {
-            console.error('Network error or no response from server:', error);
-            popup({ message: 'Network error or server unreachable.' });
-          }
-        });
-
+          });
+      }
+      
+      // Handle 2FA authentication
+      else if (this.loginStep === 'authenticate') {
+        let challenge = {};
+        
+        // Check if code contains letters (recovery code)
+        if (/[a-zA-Z]/.test(this.form.twoFactorAuthCode)) {
+          challenge = {
+            recovery_code: this.form.twoFactorAuthCode
+          };
+        } else {
+          challenge = {
+            code: this.form.twoFactorAuthCode
+          };
+        }
+        
+        post('two-factor-challenge', challenge)
+          .then(response => {
+            if (response.status === 200) {
+              this.loginLoading = false;
+              localStorage.setItem('token', response.data.token);
+              localStorage.setItem('profile', JSON.stringify(response.data.user));
+              this.$router.push({ name: 'dashboard' });
+            }
+          })
+          .catch(error => {
+            this.loginLoading = false;
+            popup(error.response);
+          });
+      }
+      
+      // Handle password reset
+      else if (this.loginStep === 'resetPassword') {
+        post('auth/client/changePsw', this.form)
+          .then(response => {
+            this.form.password = this.form.newPassword;
+            return post('auth/client/finishLogin', this.form);
+          })
+          .then(response => {
+            // After password reset, go to 2FA authentication
+            this.loginStep = 'authenticate';
+            this.loginLoading = false;
+          })
+          .catch(error => {
+            this.loginLoading = false;
+            if (error.response) {
+              popup(error.response);
+            } else {
+              console.error('Network error or no response from server:', error);
+              popup({ message: 'Network error or server unreachable.' });
+            }
+          });
+      }
+    },
+    getButtonLabel() {
+      switch (this.loginStep) {
+        case 'credentials':
+          return 'Inloggen';
+        case 'configure':
+          return 'Voltooien';
+        case 'authenticate':
+          return 'Authenticeren';
+        case 'resetPassword':
+          return 'Wachtwoord wijzigen';
+        default:
+          return 'Verder';
       }
     },
     async initBiometricLogin() {
@@ -389,7 +489,7 @@ $theme-signup-darken: var(--q-primary);
 $theme-signup-background: #2C3034;
 $theme-login: var(--q-primary);
 $theme-login-darken: var(--q-primary);
-$theme-login-background: #f9f9f9;
+$theme-login-background: white;
 $theme-dark: #212121;
 $theme-light: #e3e3e3;
 $font-default: 'Roboto', sans-serif;
@@ -401,6 +501,15 @@ $error: #d9534f;
   display: flex;
   justify-content: center;
   align-items: center;
+}
+
+.login-heading {
+  text-align: center;
+  color: $theme-login;
+  margin-bottom: 2em;
+  font-weight: 300;
+  font-size: 2.2em;
+  letter-spacing: 0.02em;
 }
 
 .q-input {
@@ -417,71 +526,136 @@ $error: #d9534f;
 }
 
 .text-container {
-  height: 8vh;
-  font-size: 22px;
-  letter-spacing: 0.2rem;
+  height: auto;
+  margin-top: 1.5em;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3em;
+}
+
+.card-title {
+  font-size: 1.8em;
+  font-weight: 700;
+  letter-spacing: 0.15em;
   color: white;
+}
+
+.card-subtitle {
+  font-size: 0.95em;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.85);
+  letter-spacing: 0.05em;
 }
 
 /* Responsive grid */
 .rolCard {
-  height: 28vh;
-  padding: 2vh;
+  height: 32vh;
+  min-height: 280px;
   width: 100%;
-  margin: 1vw;
+  border-radius: 16px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+  overflow: hidden;
+  position: relative;
+}
+
+.rolCard::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0) 100%);
+  pointer-events: none;
+}
+
+.office-card {
+  background: linear-gradient(135deg, #d75395 0%, #c13d7e 100%);
+}
+
+.twofa-card {
+  background: linear-gradient(135deg, #2ab6cb 0%, #1e96aa 100%);
 }
 
 .rolCard:hover {
   cursor: pointer;
+  transform: translateY(-6px);
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.18);
+}
+
+.rolCard:active {
+  transform: translateY(-2px);
+}
+
+.card-content {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  padding: 2em !important;
 }
 
 /* Avatar adjustments */
 .dynamic-avatar {
-  width: 5vw;
-  height: 5vw;
+  background-color: rgba(255, 255, 255, 0.25) !important;
+  backdrop-filter: blur(10px);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.dynamic-avatar-container {
+  margin-bottom: 0.5em;
 }
 
 /* Adjust icon size */
 .dynamic-icon {
-  font-size: 3vw;
+  color: white !important;
 }
 
 @media only screen and (max-width: 1024px) and (min-width: 600px) {
-  .dynamic-avatar {
-    width: 10vw !important;
-    /* Increase size slightly for better scaling */
-    height: 10vw !important;
+  .card-title {
+    font-size: 1.6em;
   }
 
-  .dynamic-icon {
-    font-size: 6vw !important;
+  .card-subtitle {
+    font-size: 0.9em;
+  }
+
+  .rolCard {
+    min-height: 260px;
   }
 }
 
 @media only screen and (max-width: 600px) and (min-width: 400px) {
-  .dynamic-avatar {
-    width: 15vw;
-    height: 15vw;
-    max-width: 100px;
-    max-height: 100px;
+  .card-title {
+    font-size: 1.5em;
   }
 
-  .dynamic-icon {
-    font-size: 8vw;
-    max-width: 70px;
-    max-height: 70px;
+  .card-subtitle {
+    font-size: 0.85em;
+  }
+
+  .rolCard {
+    min-height: 240px;
   }
 }
 
 @media only screen and (max-width: 400px) {
-  .dynamic-avatar {
-    width: 25vw !important;
-    height: 25vw !important;
-    margin-bottom: 1vh;
+  .card-title {
+    font-size: 1.4em;
   }
 
-  .dynamic-icon {
-    font-size: 18vw !important;
+  .card-subtitle {
+    font-size: 0.8em;
+  }
+
+  .rolCard {
+    min-height: 220px;
+  }
+
+  .login-heading {
+    font-size: 1.8em;
   }
 }
 
@@ -498,32 +672,22 @@ $error: #d9534f;
     margin-left: 0 !important;
   }
 
-  .q-col-gutter-md {
+  .q-col-gutter-lg {
     display: flex;
     flex-direction: column;
     align-items: center;
+    gap: 1.5em;
   }
 
   .rolCard {
-    width: 100% !important;
+    width: 90% !important;
+    max-width: 400px;
   }
 
-  /* Make both divs same size */
   .col-12 {
     max-width: 100%;
-  }
-
-  .dynamic-avatar {
-    width: 15vw;
-    height: 15vw;
-    max-width: 100px;
-    max-height: 100px;
-  }
-
-  .dynamic-icon {
-    font-size: 8vw;
-    max-width: 70px;
-    max-height: 70px;
+    display: flex;
+    justify-content: center;
   }
 }
 
@@ -531,9 +695,7 @@ $error: #d9534f;
   height: 35%;
   display: flex;
   justify-content: center;
-  /* Centers horizontally */
   align-items: center;
-  /* Centers vertically */
 }
 
 body {
@@ -825,39 +987,25 @@ button:hover {
   position: relative;
   width: 100%;
   height: 100%;
-}
-
-.spinner-size {
-  width: 50%;
-  /* Adjust as needed */
-  height: 50%;
-  /* Adjust as needed */
-  max-width: 100%;
-  /* Ensure it doesn't overflow */
-  max-height: 100%;
-  /* Ensure it doesn't overflow */
-  margin: auto;
-  /* Center the spinner within the div */
-}
-
-.qr-container {
-  position: relative;
-  width: 100%;
-  /* Ensure it takes up the full column space */
-  height: 100%;
-  /* Adjust as necessary */
   display: flex;
   justify-content: center;
   align-items: center;
 }
 
+.spinner-size {
+  width: 50%;
+  height: 50%;
+  max-width: 100%;
+  max-height: 100%;
+  margin: auto;
+}
+
 .full-size-icon {
   font-size: 100%;
-  /* Scale to parent container */
   width: 100%;
   height: 100%;
   max-width: 100%;
-  /* Prevent overflow */
   max-height: 100%;
+  color: var(--q-primary);
 }
 </style>

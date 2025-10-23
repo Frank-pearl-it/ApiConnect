@@ -19,7 +19,14 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => ['https://webservices19.autotask.net/atservicesrest/*', 'https://b2bapi.snelstart.nl/v2/*', 'http://localhost:9000/*', 'https://irma.to.be.filled'],
+    'allowed_origins' => [
+        'https://webservices19.autotask.net/atservicesrest/*',
+        'https://b2bapi.snelstart.nl/v2/*',
+        rtrim(config('app.frontend_url', 'http://localhost:9000'), '/') . '/*',
+,
+        // ✅ dynamic frontend URL
+        'https://irma.to.be.filled'
+    ],
 
     'allowed_origins_patterns' => [],
 
@@ -29,6 +36,6 @@ return [
 
     'max_age' => 0,
 
-    'supports_credentials' => false,
+    'supports_credentials' => true,
 
 ];
