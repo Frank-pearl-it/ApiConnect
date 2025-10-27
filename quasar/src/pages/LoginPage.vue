@@ -1,17 +1,17 @@
 <template>
-  <q-page style="padding: 0;" class="q-pa-md window-height window-width row justify-center items-center" id="container" >
+  <q-page style="padding: 0;" class="q-pa-md window-height window-width row justify-center items-center" id="container">
     <div id="back">
       <canvas id="canvas" class="canvas-back"></canvas>
       <div class="backRight"></div>
       <div class="backLeft"></div>
     </div>
 
-    <div id="slideBox" >
+    <div id="slideBox">
       <div class="topLayer">
         <div class="left hide-on-mobile"></div> <!-- Hide left on mobile -->
         <div class="right">
           <div id="image">
-            <img src="../assets/logo.svg" alt="Houvast logo" class="logo" width="675" style="margin-bottom: -100px;"/>
+            <img src="../assets/logo.svg" alt="Houvast logo" class="logo" width="675" style="margin-bottom: -100px;" />
           </div>
 
           <div v-show="this.userType === null" class="content">
@@ -63,9 +63,10 @@
               <div v-show="this.loginStep === 'credentials'">
                 <h2><b>Login</b></h2>
                 <div class="form-element form-stack">
-                  <q-input ref="emailInput" label="E-mail"
-                    :rules="[val => val && val.length > 0 || 'Dit veld mag niet leeg zijn.']" v-model="this.form.email"
-                    autofocus></q-input>
+                  <q-input ref="emailInput" label="E-mail" type="email" name="email" :rules="[
+                    val => !!val || 'Dit veld mag niet leeg zijn.',
+                    val => /^(?:[a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?\.)+[a-zA-Z]{2,})$/.test(val) || 'Geen geldig e-mailadres.'
+                  ]" v-model="form.email" autofocus></q-input>
                 </div>
                 <div class="form-element form-stack">
                   <q-input :type="isPwd ? 'password' : 'text'" id="password" label="Wachtwoord"
@@ -144,18 +145,22 @@
                   </q-input>
                 </div>
               </div>
+              <div class="form-element form-submit row justify-between items-start">
+                <div class="column">
+                  <q-btn icon-right="arrow_forward" :loading="loginLoading" class="login" type="submit"
+                    :label="getButtonLabel()" />
 
-              <div class="form-element form-submit">
-                <q-btn icon-right="arrow_forward" :loading="this.loginLoading" class="login" type="submit"
-                  :label="getButtonLabel()"></q-btn>
+                  <q-btn v-if="loginStep === 'credentials' && client !== null && client.biometricsRegistered === 1"
+                    icon-right="fingerprint" class="login q-mt-sm" @click="initBiometricLogin"
+                    :loading="biometricLoginLoading" type="button" label="Biometrische inlog" />
 
-                <q-btn style="margin-left: 1vw;" v-if="this.loginStep === 'credentials' && this.client !== null && this.client.biometricsRegistered === 1"
-                  icon-right="fingerprint" class="login" @click="this.initBiometricLogin"
-                  :loading="this.biometricLoginLoading" type="button" label="Biometrische inlog"></q-btn>
-
-                <q-btn icon-right="fingerprint" :loading="this.loginLoading" class="login" type="button"
-                  v-if="this.loginStep === 'resetPassword'" @click="this.registerBiometrics"
-                  label="Registreer biometrisch inloggen"></q-btn>
+                  <q-btn icon-right="fingerprint" :loading="loginLoading" class="login q-mt-sm" type="button"
+                    v-if="loginStep === 'resetPassword'" @click="registerBiometrics"
+                    label="Registreer biometrisch inloggen" />
+                </div>
+                <!-- TODO make it send a pw reset mail -->
+                <q-btn v-if="loginStep === 'credentials'" id="forgotPassword" flat color="primary" label="Wachtwoord vergeten?"
+                  class="text-weight-medium no-caps q-pt-xs" @click="forgotPassword" />
               </div>
 
             </q-form>
@@ -170,7 +175,7 @@
 import { defineComponent, ref, nextTick } from 'vue';
 import { get, post } from '../../../resources/js/bootstrap.js'
 import { popup, initializeCanvas, initializeBiometricLogin, initializeBiometricRegister } from "boot/custom-mixin";
-
+import { showLoading, hideLoading } from 'src/utils/loading.js';
 export default defineComponent({
   name: 'LoginPage',
   data() {
@@ -234,9 +239,35 @@ export default defineComponent({
       return matches ? decodeURIComponent(matches[1]) : null;
     },
     deleteCookie(name, domain = null) {
+      // sets the cookie expiration date to a past date to delete it
       let cookieStr = `${name}=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;`;
       if (domain) cookieStr += ` Domain=${domain};`;
       document.cookie = cookieStr;
+    },
+    forgotPassword() {
+      if (!this.form.email) {
+        popup({ data: { message: "Vul een geldig e-mail adres in om wachtwoord te resetten." }, status: 400 });
+        return;
+      }
+      showLoading('Reset mail verzenden...');
+      post("sendResetLink", this.form)
+        // TODO success message does not show yet dk why
+        .then((response) => {
+          popup(response);
+        })
+        // TODO error message when trying too frequently doesnt show due to different message composition
+        .catch((error) => {
+          this.loginLoading = false;
+          const response = error.response;
+          // Manually adapt structure to fit what popup() expects
+          if (response?.data?.errors?.message) {
+            response.data.message = response.data.errors.message;
+          }
+          popup(response);
+        })
+        .finally(() => {
+          hideLoading();
+        });
     },
     async registerBiometrics() {
       try {
@@ -312,16 +343,16 @@ export default defineComponent({
 
       // Handle credentials step (combined email + password)
       if (this.loginStep === 'credentials') {
-        post('auth/client/initLogin', this.form)
+        post('login', this.form)
           .then(response => {
-            this.client = response.data;
-            
+            localStorage.setItem('profile', JSON.stringify(response.data));
+
             // Check if user needs to configure 2FA
             if (!response.data.two_factor) {
               this.loginStep = 'configure';
               this.loginLoading = false;
               this.loadingQr = true;
-              
+
               // Enable 2FA for the user
               post('user/two-factor-authentication').then(response => {
                 if (response.status === 200) {
@@ -360,6 +391,7 @@ export default defineComponent({
 
             if (error.response) {
               if (error.response.status === 419) {
+                // if token is expired, delete it and reload page with a message that it refreshed the token
                 localStorage.setItem('flashMessage', 'Token vernieuwd probeer opnieuw in te loggen');
                 document.cookie = 'XSRF-TOKEN=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT';
                 setTimeout(() => {
@@ -372,7 +404,7 @@ export default defineComponent({
                 error.response.status === 401 &&
                 error.response.data.messages &&
                 error.response.data.messages.toString().includes(
-                  'Non clienten mogen alleen inloggen met Microsoft.'
+                  'Uw bedrijf maakt gebruik van Office, gebruik deze login methode in plaats van 2fa.'
                 )
               ) {
                 this.userType = null;
@@ -385,7 +417,7 @@ export default defineComponent({
             }
           });
       }
-      
+
       // Handle 2FA configuration
       else if (this.loginStep === 'configure') {
         post('user/confirmed-two-factor-authentication', { code: this.form.twoFactorCode })
@@ -402,11 +434,11 @@ export default defineComponent({
             popup(error.response);
           });
       }
-      
+
       // Handle 2FA authentication
       else if (this.loginStep === 'authenticate') {
         let challenge = {};
-        
+
         // Check if code contains letters (recovery code)
         if (/[a-zA-Z]/.test(this.form.twoFactorAuthCode)) {
           challenge = {
@@ -417,7 +449,7 @@ export default defineComponent({
             code: this.form.twoFactorAuthCode
           };
         }
-        
+
         post('two-factor-challenge', challenge)
           .then(response => {
             if (response.status === 200) {
@@ -432,7 +464,7 @@ export default defineComponent({
             popup(error.response);
           });
       }
-      
+
       // Handle password reset
       else if (this.loginStep === 'resetPassword') {
         post('auth/client/changePsw', this.form)
@@ -470,16 +502,6 @@ export default defineComponent({
           return 'Verder';
       }
     },
-    async initBiometricLogin() {
-      this.biometricLoginLoading = true
-      let token = await initializeBiometricLogin(this.form);
-      if (token) {
-        localStorage.setItem('token', token)
-        localStorage.setItem('profile', JSON.stringify(this.client))
-        this.$router.push({ name: 'dashboard' })
-      }
-      this.biometricLoginLoading = false;
-    }
   }
 });
 </script>
@@ -1007,5 +1029,11 @@ button:hover {
   max-width: 100%;
   max-height: 100%;
   color: var(--q-primary);
+}
+
+#forgotPassword {
+  border: none !important;
+  box-shadow: none !important;
+  margin: 0 !important;
 }
 </style>

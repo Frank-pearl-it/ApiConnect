@@ -7,11 +7,11 @@ const guard = function (to, from, next) {
       return next('/'); // Redirect to login if not authenticated
     }
 
-    if (!userProfile || !userProfile.rol) {
+    if (!userProfile || !userProfile.role) {
       return next('/'); // Redirect to login if no valid profile
     }
 
-    const userRole = userProfile.rol.rolNaam.trim(); // Trim in case of extra spaces
+    const userRole = userProfile.role.name.trim(); // Trim in case of extra spaces
 
     // Role-based permissions
     const rolePermissions = {
@@ -55,6 +55,14 @@ const routes = [
       { path: '', name: 'login', component: () => import('pages/LoginPage.vue') }
     ]
   },  
+  {
+    path:  '/resetWachtwoord',
+    beforeEnter: guard,
+    component: () => import('layouts/BlankLayout.vue'),
+    children: [
+      { path: '', name: 'resetWachtwoord', component: () => import('pages/ResetWachtwoord.vue') }
+    ]
+  },
   // Always leave this as last one
   {
     path: '/:catchAll(.*)*',

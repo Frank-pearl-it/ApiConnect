@@ -33,7 +33,7 @@
           </q-item-section>
           <q-item-section class="textSection">
             <q-item-label>{{ userProfile?.name }}</q-item-label>
-            <q-item-label caption lines="1">{{ userProfile?.rol?.rolNaam }}</q-item-label>
+            <q-item-label caption lines="1">{{ userProfile?.role?.name }}</q-item-label>
           </q-item-section>
         </q-item>
       </q-list>
@@ -117,9 +117,9 @@ export default defineComponent({
   },
   computed: {
     filteredLinksList() {
-      if (!this.userProfile || !this.userProfile.rol) return []
+      if (!this.userProfile || !this.userProfile.role) return []
 
-      const roleName = this.userProfile.rol.rolNaam
+      const roleName = this.userProfile.role.name
       const idRol = this.userProfile?.idRol
       
       const rolePermissions = {

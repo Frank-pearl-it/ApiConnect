@@ -3,8 +3,11 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ApiController;
-use App\Http\Controllers\AutoTaskCompanyController;
-use App\Http\Controllers\AutoTaskInvoiceController;
+use App\Http\Controllers\{
+    AutoTaskCompanyController,
+    AutoTaskInvoiceController,
+    AuthController,
+};
 
 // COMPANIES
 
@@ -42,3 +45,23 @@ Route::delete('/snelstart/invoices', [AutoTaskInvoiceController::class, 'deleteS
 
 
 // Routes to be used by the frontend application
+Route::post('auth/client/changePsw', [AuthController::class, 'changePsw']);
+Route::post('auth/client/initLogin', [AuthController::class, 'initLogin']);
+Route::post('auth/client/finishLogin', [AuthController::class, 'finishLogin']);
+Route::get('auth/employee/microsoftUrl', [AuthController::class, 'getMicrosoftUrl']);
+Route::get('auth/employee/microsoftCallback', [AuthController::class, 'microsoftCallback']);
+Route::post('sendResetLink', [AuthController::class, 'sendResetLink']);
+
+// sanctum authenticated routes
+Route::middleware('auth:sanctum')->group(function () {
+// Authentication routes
+
+
+// Route::post('auth/client/initBiometricLogin', [AuthController::class, 'initBiometricLogin']);
+// Route::post('auth/client/finishBiometricLogin/{idUser}', [AuthController::class, 'verifyBiometricAuthentication']);
+
+//
+Route::post('resetPassword', [AuthController::class, 'resetPassword']);
+
+
+});

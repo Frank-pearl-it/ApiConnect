@@ -20,12 +20,10 @@ return [
     'allowed_methods' => ['*'],
 
     'allowed_origins' => [
-        'https://webservices19.autotask.net/atservicesrest/*',
-        'https://b2bapi.snelstart.nl/v2/*',
-        rtrim(config('app.frontend_url', 'http://localhost:9000'), '/') . '/*',
-,
-        // ✅ dynamic frontend URL
-        'https://irma.to.be.filled'
+        'https://webservices19.autotask.net',
+        'https://b2bapi.snelstart.nl',
+        config('app.frontend_url', 'http://localhost:9000'), 
+        'https://irma.routit.nl',
     ],
 
     'allowed_origins_patterns' => [],
