@@ -1,31 +1,22 @@
 <template>
   <q-layout view="hHh LpR fFf">
+    <!-- Header -->
     <q-header class="text-white bg-primary">
       <q-toolbar>
         <!-- Hamburger Menu (Visible on Mobile) -->
         <q-btn dense flat round icon="menu" @click="drawerOpen = !drawerOpen" class="q-mr-sm q-md-none q-lg-none" />
-
+        <div class="header-title">
+          Pearl-IT Klantenportaal
+        </div>
         <q-space />
-        <q-btn dense flat round href="https://incidenten.portal-hethouvast.nl" label="Incidenten"
-          class="q-mr-sm q-md-none q-lg-none" :align="right" style="margin-right: 20px;" />
-        <q-btn dense flat round href="https://betaalapp.portal-hethouvast.nl" label="Betalen"
-          class="q-mr-sm q-md-none q-lg-none" :align="right" />
-
       </q-toolbar>
     </q-header>
 
     <!-- Navigation Drawer -->
-    <!-- Drawer -->
-    <q-drawer v-model="drawerOpen" show-if-above side="left" elevated>
-      <!-- fixed profile item -->
+    <q-drawer v-model="drawerOpen" show-if-above side="left" elevated class="column no-wrap">
+      <!-- Profile Section -->
       <q-list bordered>
-        <q-item
-          id="profileItem"
-          v-ripple
-            clickable
-            @click="navigateTo({ name: 'gebruikerDetails', params: { id: userProfile.id } })"
-          class="q-my-sm"
-        >
+        <q-item id="profileItem" class="q-my-sm">
           <q-item-section class="iconSection">
             <q-avatar color="primary" text-color="white">
               <q-icon class="icons" name="account_circle" />
@@ -38,51 +29,75 @@
         </q-item>
       </q-list>
 
-      <!-- links area -->
-      <div ref="linkContainer" style="flex: 1; overflow: hidden;">
-        <template v-if="useVirtualScroll">
-          <q-virtual-scroll :items="filteredLinksList" v-slot="{ item }" style="height: 100%;">
-            <q-item clickable v-ripple @click="navigateTo(item.hName)" class="q-my-sm">
-              <q-item-section class="iconSection">
-                <q-avatar color="primary" text-color="white">
-                  <q-icon class="icons" :name="item.icon" />
-                </q-avatar>
-              </q-item-section>
-              <q-item-section class="textSection">
-                <q-item-label>{{ item.title }}</q-item-label>
-                <q-item-label caption lines="1" v-html="item.caption" />
-              </q-item-section>
-              <q-item-section class="activeSection">
-                <div :class="{ active: $route.fullPath.includes(item.hName) }" class="rounded-dot" />
-              </q-item-section>
-            </q-item>
-          </q-virtual-scroll>
-        </template>
+      <!-- Main Links -->
+      <div ref="linkContainer" class="drawer-links">
+        <q-list>
+          <q-item v-for="item in linksList" :key="item.hName" clickable v-ripple @click="navigateTo(item.hName)"
+            class="q-my-sm">
+            <q-item-section class="iconSection">
+              <q-avatar color="primary" text-color="white">
+                <q-icon class="icons" :name="item.icon" />
+              </q-avatar>
+            </q-item-section>
 
-        <template v-else>
-          <q-list>
-            <q-item v-for="item in filteredLinksList" :key="item.hName" clickable v-ripple
-              @click="navigateTo(item.hName)" class="q-my-sm">
-              <q-item-section class="iconSection">
-                <q-avatar color="primary" text-color="white">
-                  <q-icon class="icons" :name="item.icon" />
-                </q-avatar>
-              </q-item-section>
-              <q-item-section class="textSection">
-                <q-item-label>{{ item.title }}</q-item-label>
-                <q-item-label caption lines="1" v-html="item.caption" />
-              </q-item-section>
-              <q-item-section class="activeSection">
-                <div :class="{ active: $route.fullPath.includes(item.hName) }" class="rounded-dot" />
-              </q-item-section>
-            </q-item>
-          </q-list>
-        </template>
+            <q-item-section class="textSection">
+              <q-item-label>{{ item.title }}</q-item-label>
+              <q-item-label caption lines="1" v-html="item.caption" />
+            </q-item-section>
+
+            <q-item-section class="activeSection">
+              <div :class="{ active: $route.fullPath.includes(item.hName) }" class="rounded-dot" />
+            </q-item-section>
+          </q-item>
+        </q-list>
+      </div>
+
+      <!-- Bottom Section (Contact + Logout) -->
+      <div class="q-mt-auto q-pb-sm">
+        <q-list>
+          <!-- Contact item -->
+          <q-item clickable v-ripple ref="contactItem">
+            <q-item-section class="iconSection">
+              <q-avatar color="primary" text-color="white">
+                <q-icon name="contact_support" />
+              </q-avatar>
+            </q-item-section>
+            <q-item-section class="textSection">
+              <q-item-label>Contact</q-item-label>
+              <q-item-label caption>Bekijk contactinformatie</q-item-label>
+            </q-item-section>
+            <q-menu anchor="top right" self="top left">
+              <q-card flat bordered class="q-pa-md text-left shadow-1 contact-card">
+                <div class="text-subtitle1 text-bold text-primary q-mb-sm">Contact</div>
+                <div>Email: <span class="text-grey-8">helpdesk@pearl-it.nl</span></div>
+                <div>Tel: <span class="text-grey-8">+31 (0)13 - 203 20 78</span></div>
+              </q-card>
+            </q-menu>
+          </q-item>
+
+          <!-- Uitloggen item -->
+          <q-item clickable v-ripple @click="logout" class="q-my-sm">
+            <q-item-section class="iconSection">
+              <q-avatar color="primary" text-color="white">
+                <q-icon name="logout" />
+              </q-avatar>
+            </q-item-section>
+            <q-item-section class="textSection">
+              <q-item-label>Uitloggen</q-item-label>
+              <q-item-label caption>Afmelden van je account</q-item-label>
+            </q-item-section>
+          </q-item>
+        </q-list>
       </div>
     </q-drawer>
 
-
+    <!-- Page Content -->
     <q-page-container>
+      <!-- ✅ Fixed Stable Logo -->
+      <div class="page-logo" :class="{ 'drawer-open': drawerOpen }">
+        <img src="~assets/logo-thin.svg" alt="Logo" class="page-logo-img" />
+      </div>
+
       <router-view @notification-updated="updateDashboardActionRequired" @checkNotifications="checkNotifications" />
     </q-page-container>
   </q-layout>
@@ -90,92 +105,83 @@
 
 <script>
 import { defineComponent } from 'vue'
-import EssentialLink from 'components/EssentialLink.vue'
-import { get, post } from '../../../resources/js/bootstrap.js'
+import { get } from '../../../resources/js/bootstrap.js'
 import { popup } from 'src/boot/custom-mixin.js'
 
 export default defineComponent({
   name: 'MainLayout',
-  components: {
-    EssentialLink
-  },
+
   data() {
     return {
-      drawerOpen: false, // Controls drawer visibility
+      drawerOpen: false,
       dashboardActionRequired: false,
-      // Base list (static defaults). We'll override titles/captions reactively in computed.
-      linksList: [
-        {
-          title: 'Overzicht',
-          hName: 'dashboard',
-          caption: 'Jouw agenda en meldingen',
-          icon: 'dashboard'
-        }, 
-      ],
       userProfile: {}
     }
   },
-  computed: {
-    filteredLinksList() {
-      if (!this.userProfile || !this.userProfile.role) return []
 
-      const roleName = this.userProfile.role.name
-      const idRol = this.userProfile?.idRol
-      
-      const rolePermissions = {
-         "Client": ['dashboard', 'contactmomenten', 'afspraken', 'houvastTelefoon', 'instellingen', 'logout'],
-      'Begeleider ZZP': ['dashboard', 'rapportages', 'contactmomenten', 'afspraken', 'gebruikerDetails', 'houvastTelefoon', 'wagenpark', 'instellingen', 'logout'],
-      "Begeleider Houvast": ['dashboard', 'rapportages','contactmomenten', 'afspraken', 'gebruikerDetails', 'houvastTelefoon', 'wagenpark', 'instellingen', 'logout'],
-      'Klusteam': ['dashboard', 'afspraken','rapportages', 'contactmomenten', 'gebruikerDetails', 'houvastTelefoon', 'wagenpark', 'instellingen', 'logout'], //afspraken weghalen? maakt trouwens niet uit want ze kunnen het indirect via gebruiker details zien
-      'Wagenpark Beheerder': ['dashboard', 'rapportages','contactmomenten', 'afspraken', 'gebruikerDetails', 'houvastTelefoon', 'wagenpark', 'instellingen', 'logout'],
-      "Bestuur": ['dashboard', 'rooster', 'contactmomenten','afspraken', 'gebruikers', 'gebruikerDetails', 'houvastTelefoon', 'wagenpark', 'instellingen', 'rapportages', 'logout'],
-      'Admin': ['dashboard', 'rooster', 'contactmomenten','afspraken', 'gebruikers', 'gebruikerDetails', 'houvastTelefoon', 'wagenpark', 'instellingen', 'rapportages', 'logout'],
-      'Super Admin': ['dashboard','contactmomenten', 'rooster', 'afspraken', 'gebruikers', 'gebruikerDetails', 'houvastTelefoon', 'wagenpark', 'instellingen', 'rapportages', 'logout'],
-      
+  computed: {
+    linksList() {
+      const baseLinks = [
+        {
+          title: 'Overzicht',
+          hName: 'dashboard',
+          caption: this.dashboardActionRequired
+            ? '<span style="color: orange; font-weight: bold;">Je hebt nieuwe meldingen!</span>'
+            : 'Jouw agenda en meldingen',
+          icon: 'dashboard'
+        },
+        {
+          title: 'Facturen',
+          hName: 'facturen',
+          caption: 'Bekijk en beheer facturen',
+          icon: 'receipt_long'
+        },
+        {
+          title: 'Gebruikers',
+          hName: 'gebruikers',
+          caption: 'Beheer gebruikers en rollen',
+          icon: 'people'
+        },
+        {
+          title: 'Producten',
+          hName: 'producten',
+          caption: 'Bekijk en beheer producten',
+          icon: 'inventory_2'
+        },
+        {
+          title: 'Tickets',
+          hName: 'tickets',
+          caption: 'Bekijk en behandel support tickets',
+          icon: 'confirmation_number'
+        }
+      ]
+
+      if (this.userProfile?.role?.name === 'Beheerder') {
+        baseLinks.push({
+          title: 'Gebruikersbeheer',
+          hName: 'users',
+          caption: 'Beheer gebruikers en rechten',
+          icon: 'admin_panel_settings'
+        })
       }
 
-      return this.linksList
-        .filter(link => rolePermissions[roleName]?.includes(link.hName))
-        .map(link => {
-          // Dynamic title/caption for afspraken based on idRol (3 => purely Afspraken)
-          if (link.hName === 'afspraken') {
-            const title = idRol === 3 ? 'Afspraken' : 'Rooster, Afspraken & Verlof'
-            const caption = idRol === 3 ? 'Beheer afspraken' : 'Beheer rooster, afspraken en verlof'
-            return { ...link, title, caption }
-          }
-
-          // Dynamic dashboard caption when there are pending notifications
-          if (link.hName === 'dashboard') {
-            return {
-              ...link,
-              icon: 'dashboard',
-              caption: this.dashboardActionRequired
-                ? '<span style="color: orange; font-weight: bold;">Onbehandelde meldingen</span>'
-                : 'Jouw agenda en meldingen'
-            }
-          }
-
-          return link
-        })
+      return baseLinks
     }
   },
+
   methods: {
     navigateTo(to) {
-      if (to === 'logout') {
-        localStorage.removeItem('profile')
-        localStorage.removeItem('token')
-        return (window.location.href = '/#/')
-      }
-
       if (!to) return
-
       const route = typeof to === 'string' ? { name: to } : to
-
       this.$router.push(route).catch(err => {
-        if (err.name !== 'NavigationDuplicated') {
-          console.error(err)
-        }
+        if (err.name !== 'NavigationDuplicated') console.error(err)
       })
+    },
+
+    logout() {
+      localStorage.removeItem('profile')
+      localStorage.removeItem('token')
+      window.location.href = '/#/'
     },
 
     checkNotifications() {
@@ -196,18 +202,27 @@ export default defineComponent({
       this.dashboardActionRequired = hasNotifications
     }
   },
-  mounted() {
-    this.checkNotifications()
-  },
+
   beforeMount() {
-    this.userProfile = JSON.parse(localStorage.getItem('profile'))
+    try {
+      this.userProfile = JSON.parse(localStorage.getItem('profile')) || {}
+    } catch {
+      this.userProfile = {}
+    }
   }
 })
 </script>
 
 <style scoped>
-#navList {
-  overflow-x: hidden;
+.q-drawer {
+  display: flex;
+  flex-direction: column;
+}
+
+.drawer-links {
+  flex: 1;
+  overflow-y: auto;
+  padding-bottom: 10px;
 }
 
 .iconSection {
@@ -242,5 +257,71 @@ export default defineComponent({
 
 #profileItem {
   border-bottom: 2px solid gray;
+}
+
+/* Contact Popup */
+.contact-card {
+  width: 220px;
+  border-radius: 12px;
+}
+
+.text-primary {
+  color: #1565c0;
+}
+
+.q-header {
+  right: 0px;
+}
+
+/* ✅ Always reserve scrollbar space so nothing shifts */
+html {
+  scrollbar-gutter: stable;
+}
+
+/* ✅ Fixed logo: identical position & size on every page */
+/* ✅ Fixed logo: identical position & size on every page */
+.page-logo {
+  position: fixed;
+  top: 42%;
+  /* slightly above vertical center */
+  left: 50vw;
+  /* center using viewport width */
+  transform: translate(-37%, -50%);
+  /* moved ~10% to the right */
+  z-index: 1;
+  pointer-events: none;
+}
+
+
+.page-logo-img {
+  width: 1440px;
+  /* fixed pixel size (no change on scrollbar toggle) */
+  max-width: 90vw;
+  /* responsive for smaller screens */
+  height: auto;
+}
+
+/* ✅ Fixed logo baseline: centered when drawer closed */
+.page-logo {
+  position: fixed;
+  top: 42%;
+  left: 50vw;
+  transform: translate(-50%, -50%);
+  /* fully centered */
+  z-index: 1;
+  pointer-events: none;
+  transition: transform 0.3s ease;
+  /* smooth movement */
+}
+
+/* ✅ When drawer is open, shift slightly to the right */
+.page-logo.drawer-open {
+  transform: translate(-37%, -50%);
+  /* same offset you liked before */
+}
+
+.header-title {
+  font-size: 1rem;
+  font-weight: bold;
 }
 </style>

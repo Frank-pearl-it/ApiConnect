@@ -150,17 +150,10 @@
                   <q-btn icon-right="arrow_forward" :loading="loginLoading" class="login" type="submit"
                     :label="getButtonLabel()" />
 
-                  <q-btn v-if="loginStep === 'credentials' && client !== null && client.biometricsRegistered === 1"
-                    icon-right="fingerprint" class="login q-mt-sm" @click="initBiometricLogin"
-                    :loading="biometricLoginLoading" type="button" label="Biometrische inlog" />
-
-                  <q-btn icon-right="fingerprint" :loading="loginLoading" class="login q-mt-sm" type="button"
-                    v-if="loginStep === 'resetPassword'" @click="registerBiometrics"
-                    label="Registreer biometrisch inloggen" />
                 </div>
                 <!-- TODO make it send a pw reset mail -->
-                <q-btn v-if="loginStep === 'credentials'" id="forgotPassword" flat color="primary" label="Wachtwoord vergeten?"
-                  class="text-weight-medium no-caps q-pt-xs" @click="forgotPassword" />
+                <q-btn v-if="loginStep === 'credentials'" id="forgotPassword" flat color="primary"
+                  label="Wachtwoord vergeten?" class="text-weight-medium no-caps q-pt-xs" @click="forgotPassword" />
               </div>
 
             </q-form>
@@ -170,12 +163,12 @@
     </div>
   </q-page>
 </template>
-
-<script>
-import { defineComponent, ref, nextTick } from 'vue';
+<script lang="js">
+import { defineComponent, nextTick } from 'vue';
 import { get, post } from '../../../resources/js/bootstrap.js'
-import { popup, initializeCanvas, initializeBiometricLogin, initializeBiometricRegister } from "boot/custom-mixin";
+import { popup, initializeCanvas } from "boot/custom-mixin";
 import { showLoading, hideLoading } from 'src/utils/loading.js';
+
 export default defineComponent({
   name: 'LoginPage',
   data() {
@@ -184,19 +177,16 @@ export default defineComponent({
       isPwd: true,
       userType: null,
       loginStep: 'credentials', // 'credentials', 'configure', 'authenticate', 'resetPassword'
-      statusLogin: 'name',
-      client: null,
+      twoFactorUser: null, // Store user data for 2FA flow
       loginLoading: false,
-      biometricLoginLoading: false,
       microsoftLoginUrl: null,
-      passwordNeedsReset: false,
       microsoftUrlLoading: true,
       officeClickLoading: false,
       loadingQr: false,
     }
   },
   mounted() {
-    initializeCanvas()
+    initializeCanvas();
     this.$nextTick(() => {
       setTimeout(() => {
         const flashLocal = localStorage.getItem('flashMessage');
@@ -231,7 +221,7 @@ export default defineComponent({
     }).catch(error => {
       popup(error.response);
       this.microsoftUrlLoading = false;
-    })
+    });
   },
   methods: {
     getCookie(name) {
@@ -239,11 +229,34 @@ export default defineComponent({
       return matches ? decodeURIComponent(matches[1]) : null;
     },
     deleteCookie(name, domain = null) {
-      // sets the cookie expiration date to a past date to delete it
       let cookieStr = `${name}=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;`;
       if (domain) cookieStr += ` Domain=${domain};`;
       document.cookie = cookieStr;
     },
+    
+    handleCsrfError() {
+      localStorage.setItem('flashMessage', 'Token vernieuwd probeer opnieuw in te loggen');
+      document.cookie = 'XSRF-TOKEN=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT';
+      setTimeout(() => {
+        window.location.reload();
+      }, 100);
+    },
+    
+    handleOfficeError(error) {
+      if (
+        error.response.status === 401 &&
+        error.response.data.messages &&
+        error.response.data.messages.toString().includes(
+          'Uw bedrijf maakt gebruik van Office, gebruik deze login methode in plaats van 2fa.'
+        )
+      ) {
+        this.userType = null;
+        this.loginStep = 'credentials';
+        return true;
+      }
+      return false;
+    },
+    
     forgotPassword() {
       if (!this.form.email) {
         popup({ data: { message: "Vul een geldig e-mail adres in om wachtwoord te resetten." }, status: 400 });
@@ -251,15 +264,12 @@ export default defineComponent({
       }
       showLoading('Reset mail verzenden...');
       post("sendResetLink", this.form)
-        // TODO success message does not show yet dk why
         .then((response) => {
           popup(response);
         })
-        // TODO error message when trying too frequently doesnt show due to different message composition
         .catch((error) => {
           this.loginLoading = false;
           const response = error.response;
-          // Manually adapt structure to fit what popup() expects
           if (response?.data?.errors?.message) {
             response.data.message = response.data.errors.message;
           }
@@ -269,37 +279,7 @@ export default defineComponent({
           hideLoading();
         });
     },
-    async registerBiometrics() {
-      try {
-        const success = await initializeBiometricRegister(this.client.id);
-
-        if (success) {
-          const message = {
-            status: 200,
-            data: {
-              messages: { success: 'Biometrische inlog succesvol geregistreerd!' }
-            }
-          };
-          popup(message);
-        } else {
-          const errorMessage = {
-            status: 400,
-            data: {
-              message: 'Biometrische registratie mislukt. Probeer het opnieuw.'
-            }
-          };
-          popup(errorMessage);
-        }
-      } catch (error) {
-        const errorMessage = {
-          status: 500,
-          data: {
-            message: 'Er is een interne fout opgetreden bij de biometrische registratie.'
-          }
-        };
-        popup(errorMessage);
-      }
-    },
+    
     initLogin(type) {
       this.userType = type;
 
@@ -338,156 +318,142 @@ export default defineComponent({
       };
       checkUrl();
     },
+    
+    completeLogin(response) {
+      localStorage.setItem('token', response.data.token);
+      localStorage.setItem('profile', JSON.stringify(response.data.user));
+      this.$router.push({ name: 'dashboard' });
+    },
+    
     twoFactorLoginProcedure() {
       this.loginLoading = true;
 
-      // Handle credentials step (combined email + password)
+      // Step 1: Initial login with credentials
       if (this.loginStep === 'credentials') {
         post('login', this.form)
           .then(response => {
-            localStorage.setItem('profile', JSON.stringify(response.data));
-
-            // Check if user needs to configure 2FA
-            if (!response.data.two_factor) {
+            // Check if user has 2FA enabled
+            if (response.data.two_factor === false) {
+              // User needs to configure 2FA
               this.loginStep = 'configure';
               this.loginLoading = false;
               this.loadingQr = true;
+              this.twoFactorUser = response.data.user;
 
-              // Enable 2FA for the user
-              post('user/two-factor-authentication').then(response => {
-                if (response.status === 200) {
-                  get('user/two-factor-qr-code').then(response => {
-                    document.getElementById('qrDiv').innerHTML = response.data.svg;
-                    this.loadingQr = false;
-                  }).catch(error => {
-                    this.loadingQr = false;
-                    popup(error.response);
-                  });
-                }
-              }).catch(error => {
-                this.loadingQr = false;
-                popup(error.response);
-              });
+              // Enable 2FA via Fortify
+              return post('user/two-factor-authentication');
             } else {
-              // User has 2FA configured, now finish login and check password
-              post('auth/client/finishLogin', this.form).then(response => {
-                if (response.status === 201) {
-                  // Password needs reset
-                  this.loginStep = 'resetPassword';
-                  this.loginLoading = false;
-                } else {
-                  // Proceed to 2FA authentication
-                  this.loginStep = 'authenticate';
-                  this.loginLoading = false;
-                }
-              }).catch(error => {
-                this.loginLoading = false;
-                popup(error.response);
-              });
+              // User has 2FA configured, move to authentication
+              this.twoFactorUser = response.data.user;
+              this.loginStep = 'authenticate';
+              this.loginLoading = false;
+            }
+          })
+          .then(response => {
+            // This handles the 2FA setup response
+            if (response && response.status === 200) {
+              return get('user/two-factor-qr-code');
+            }
+          })
+          .then(response => {
+            if (response) {
+              document.getElementById('qrDiv').innerHTML = response.data.svg;
+              this.loadingQr = false;
             }
           })
           .catch(error => {
             this.loginLoading = false;
-
-            if (error.response) {
-              if (error.response.status === 419) {
-                // if token is expired, delete it and reload page with a message that it refreshed the token
-                localStorage.setItem('flashMessage', 'Token vernieuwd probeer opnieuw in te loggen');
-                document.cookie = 'XSRF-TOKEN=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT';
-                setTimeout(() => {
-                  window.location.reload();
-                }, 100);
-                return;
-              }
-
-              if (
-                error.response.status === 401 &&
-                error.response.data.messages &&
-                error.response.data.messages.toString().includes(
-                  'Uw bedrijf maakt gebruik van Office, gebruik deze login methode in plaats van 2fa.'
-                )
-              ) {
-                this.userType = null;
-                this.loginStep = 'credentials';
-              }
-
-              popup(error.response);
-            } else {
-              popup({ data: { message: 'Er ging iets mis. Probeer het later opnieuw.' } });
+            this.loadingQr = false;
+            
+            if (error.response?.status === 419) {
+              this.handleCsrfError();
+              return;
             }
+            
+            if (this.handleOfficeError(error)) {
+              return;
+            }
+            
+            popup(error.response);
           });
       }
 
-      // Handle 2FA configuration
+      // Step 2: Confirm 2FA configuration
       else if (this.loginStep === 'configure') {
         post('user/confirmed-two-factor-authentication', { code: this.form.twoFactorCode })
           .then(response => {
             if (response.status === 200) {
               this.loginLoading = false;
-              localStorage.setItem('token', response.data.token);
-              localStorage.setItem('profile', JSON.stringify(response.data.user));
-              this.$router.push({ name: 'dashboard' });
+              this.completeLogin(response);
             }
           })
           .catch(error => {
             this.loginLoading = false;
+            
+            if (error.response?.status === 419) {
+              this.handleCsrfError();
+              return;
+            }
+            
             popup(error.response);
           });
       }
 
-      // Handle 2FA authentication
+      // Step 3: Authenticate with 2FA code
       else if (this.loginStep === 'authenticate') {
         let challenge = {};
 
-        // Check if code contains letters (recovery code)
+        // Determine if it's a recovery code or regular code
         if (/[a-zA-Z]/.test(this.form.twoFactorAuthCode)) {
-          challenge = {
-            recovery_code: this.form.twoFactorAuthCode
-          };
+          challenge = { recovery_code: this.form.twoFactorAuthCode };
         } else {
-          challenge = {
-            code: this.form.twoFactorAuthCode
-          };
+          challenge = { code: this.form.twoFactorAuthCode };
         }
 
         post('two-factor-challenge', challenge)
           .then(response => {
-            if (response.status === 200) {
+            if (response.status === 200 || response.status === 204) {
               this.loginLoading = false;
-              localStorage.setItem('token', response.data.token);
-              localStorage.setItem('profile', JSON.stringify(response.data.user));
-              this.$router.push({ name: 'dashboard' });
+              this.completeLogin(response);
             }
           })
           .catch(error => {
             this.loginLoading = false;
+            
+            if (error.response?.status === 419) {
+              this.handleCsrfError();
+              return;
+            }
+            
             popup(error.response);
           });
       }
 
-      // Handle password reset
+      // Step 4: Reset password (custom route)
       else if (this.loginStep === 'resetPassword') {
         post('auth/client/changePsw', this.form)
           .then(response => {
             this.form.password = this.form.newPassword;
-            return post('auth/client/finishLogin', this.form);
-          })
-          .then(response => {
-            // After password reset, go to 2FA authentication
             this.loginStep = 'authenticate';
             this.loginLoading = false;
+            popup({
+              status: 200,
+              data: { message: 'Wachtwoord succesvol gewijzigd. Log nu in met uw nieuwe wachtwoord.' }
+            });
           })
           .catch(error => {
             this.loginLoading = false;
-            if (error.response) {
-              popup(error.response);
-            } else {
-              console.error('Network error or no response from server:', error);
-              popup({ message: 'Network error or server unreachable.' });
+            
+            if (error.response?.status === 419) {
+              this.handleCsrfError();
+              return;
             }
+            
+            popup(error.response);
           });
       }
     },
+    
     getButtonLabel() {
       switch (this.loginStep) {
         case 'credentials':

@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Support\Collection;
 
 class Role extends Model
 {
@@ -20,5 +22,5 @@ class Role extends Model
         'readTicketsOfRoles' => 'array',
         'getNotificationsOf' => 'array',
     ];
- 
+  
 }

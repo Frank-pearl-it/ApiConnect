@@ -1,23 +1,25 @@
 <?php
+// app/Http/Responses/Custom2FALoginResponse.php
 
-namespace app\Http\Responses;
+namespace App\Http\Responses;
 
-use App\Http\Resources\UserResource;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Log;
 use Laravel\Fortify\Contracts\TwoFactorLoginResponse as TwoFactorResponseContract;
 
 class Custom2FALoginResponse implements TwoFactorResponseContract
 {
-
     public function toResponse($request)
     {
-        return response()->json(
-            [
-                'token' => Auth::user()->createToken('bearerToken')->plainTextToken,
-                'user' => Auth::user()
-            ],
-            200
-        );
+        $user = Auth::user();
+        
+        // Load the role relationship if it exists
+        if (method_exists($user, 'role')) {
+            $user->load('role');
+        }
+        
+        return response()->json([
+            'token' => $user->createToken('bearerToken')->plainTextToken,
+            'user' => $user
+        ], 200);
     }
 }

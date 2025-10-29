@@ -7,6 +7,7 @@ use App\Http\Controllers\{
     AutoTaskCompanyController,
     AutoTaskInvoiceController,
     AuthController,
+    RoleController,
 };
 
 // COMPANIES
@@ -62,6 +63,13 @@ Route::middleware('auth:sanctum')->group(function () {
 
 //
 Route::post('resetPassword', [AuthController::class, 'resetPassword']);
+
+
+
+// ROLES AND PERMISSIONS
+Route::get('roles/permissions', [RoleController::class, 'permissions']);
+Route::apiResource('roles', RoleController::class);
+
 
 
 });

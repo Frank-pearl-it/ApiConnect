@@ -28,7 +28,8 @@ class FortifyServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton(TwoFactorConfirmedResponseContract::class,Custom2FAResponse::class);
-        $this->app->singleton(TwoFactorResponseContract::class,Custom2FALoginResponse::class);
+        $this->app->singleton(TwoFactorResponseContract::class,Custom2FALoginResponse::class); 
+        
     }
 
     /**
@@ -50,5 +51,7 @@ class FortifyServiceProvider extends ServiceProvider
         RateLimiter::for('two-factor', function (Request $request) {
             return Limit::perMinute(5)->by($request->session()->get('login.id'));
         });
+
+        
     }
 }

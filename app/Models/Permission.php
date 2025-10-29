@@ -16,6 +16,5 @@ class Permission extends Model
     protected $casts = [
         'default' => 'array',
     ];
-
-    
+ 
 }
