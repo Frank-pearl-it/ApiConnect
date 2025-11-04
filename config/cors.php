@@ -24,6 +24,7 @@ return [
         'https://b2bapi.snelstart.nl',
         config('app.frontend_url', 'http://localhost:9000'), 
         'https://irma.routit.nl',
+        'https://api.pax8.com',
     ],
 
     'allowed_origins_patterns' => [],

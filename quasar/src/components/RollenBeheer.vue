@@ -8,8 +8,15 @@
       </q-card-section>
 
       <!-- Table of Roles (now draggable) -->
-      <q-card-section>
+      <q-card-section class="relative-position">
+        <!-- 🔹 Loading overlay -->
+        <q-inner-loading :showing="loading">
+          <q-spinner color="primary" size="40px" />
+          <div class="text-grey-7 q-mt-sm">Rollen en permissies laden...</div>
+        </q-inner-loading>
+
         <draggable
+          v-if="!loading"
           v-model="roles"
           item-key="id"
           handle=".drag-handle"
@@ -31,8 +38,8 @@
           </template>
         </draggable>
 
-        <div class="text-right q-mt-md">
-          <q-btn color="primary" icon="add" label="Nieuwe rol" @click="openAddDialog" />
+        <div v-if="!loading" class="text-right q-mt-md">
+          <q-btn color="primary" icon="add" label="Nieuwe rol" @click="openAddDialog" :loading="createLoading" />
         </div>
       </q-card-section>
 
@@ -115,6 +122,8 @@ export default {
     return {
       roles: [],
       permissions: [],
+      loading: true,
+      createLoading: false,
       editDialog: false,
       editMode: false,
       form: {
@@ -146,24 +155,23 @@ export default {
   },
 
   methods: {
-    async loadRoles() {
+    async loadRolesAndPermissions() {
+      this.loading = true
       try {
-        const res = await get('roles')
-        this.roles = res.data.map(role => ({
+        const [rolesRes, permRes] = await Promise.all([get('roles'), get('roles/permissions')])
+
+        this.roles = rolesRes.data.map(role => ({
           ...role,
           permissions: Array.isArray(role.permissions)
             ? role.permissions.map(p => (typeof p === 'object' ? p.name : p))
             : []
         }))
+        this.permissions = permRes.data
       } catch (err) {
-        console.error('Fout bij laden rollen', err)
+        console.error('Fout bij laden rollen of permissies', err)
+      } finally {
+        this.loading = false
       }
-    },
-
-    loadPermissions() {
-      get('roles/permissions')
-        .then(res => (this.permissions = res.data))
-        .catch(err => console.error('Fout bij laden permissies', err))
     },
 
     openAddDialog() {
@@ -221,6 +229,7 @@ export default {
     },
 
     async saveRole() {
+      this.createLoading = true
       const payload = {
         name: this.form.name,
         idCompany: 1,
@@ -243,6 +252,8 @@ export default {
         this.editDialog = false
       } catch (err) {
         console.error('Fout bij opslaan rol', err)
+      } finally {
+        this.createLoading = false
       }
     },
 
@@ -256,7 +267,6 @@ export default {
 
     async updateRoleOrder() {
       try {
-        // Update the order in the backend
         for (let i = 0; i < this.roles.length; i++) {
           const role = this.roles[i]
           await put(`roles/${role.id}`, { roleOrder: i + 1 })
@@ -269,8 +279,7 @@ export default {
   },
 
   mounted() {
-    this.loadRoles()
-    this.loadPermissions()
+    this.loadRolesAndPermissions()
   }
 }
 </script>
@@ -279,6 +288,10 @@ export default {
 .role-table {
   table-layout: fixed;
   width: 100%;
+}
+
+.q-card{
+  min-height: 120px;
 }
 
 .q-dialog__inner {

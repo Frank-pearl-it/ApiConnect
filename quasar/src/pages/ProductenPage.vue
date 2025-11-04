@@ -2,39 +2,21 @@
   <q-page class="q-pa-xl bg-white">
     <div class="content-wrapper">
       <!-- Tabs for product type -->
-      <q-tabs
-        v-model="activeTab"
-        class="text-primary q-mb-lg"
-        align="left"
-        dense
-        active-color="primary"
-        indicator-color="primary"
-      >
-        <q-tab name="intern" label="Interne producten" />
+      <q-tabs v-model="activeTab" class="text-primary q-mb-lg" align="left" dense active-color="primary"
+        indicator-color="primary">
         <q-tab name="extern" label="Externe producten" />
+
+        <q-tab name="intern" label="Interne producten" />
       </q-tabs>
 
       <!-- Toolbar with Filter + Search -->
       <div class="row justify-between items-center q-mb-md">
         <div class="col-auto">
-          <q-btn
-            icon="filter_list"
-            label="Filter"
-            color="primary"
-            flat
-            @click="openFilter = true"
-          />
+          <q-btn icon="filter_list" label="Filter" color="primary" flat @click="openFilter = true" />
         </div>
 
         <div class="col-auto">
-          <q-input
-            dense
-            outlined
-            debounce="300"
-            v-model="search"
-            placeholder="Zoek producten..."
-            class="search-input"
-          >
+          <q-input dense outlined debounce="300" v-model="search" placeholder="Zoek producten..." class="search-input">
             <template #prepend>
               <q-icon name="search" />
             </template>
@@ -49,8 +31,9 @@
         </q-tab-panel>
 
         <q-tab-panel name="extern">
-          <ProductenExtern :search="search" />
+          <ProductenExtern :search="search" :selectedCategory="selectedCategory" :showOnlyActive="showOnlyActive" />
         </q-tab-panel>
+
       </q-tab-panels>
 
       <!-- Filter Dialog -->
@@ -61,19 +44,8 @@
           </q-card-section>
 
           <q-card-section>
-            <q-select
-              v-model="selectedCategory"
-              :options="categoryOptions"
-              label="Categorie"
-              outlined
-              dense
-            />
-            <q-toggle
-              v-model="showOnlyActive"
-              label="Toon alleen actieve producten"
-              color="primary"
-              class="q-mt-md"
-            />
+            <q-select v-model="selectedCategory" :options="categoryOptions" label="Categorie" outlined dense />
+            <q-toggle v-model="showOnlyActive" label="Toon alleen actieve producten" color="primary" class="q-mt-md" />
           </q-card-section>
 
           <q-card-actions align="right">
@@ -100,7 +72,7 @@ export default defineComponent({
 
   data() {
     return {
-      activeTab: 'intern',
+      activeTab: 'extern',
       search: '',
       openFilter: false,
       selectedCategory: null,

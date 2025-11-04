@@ -4,5 +4,7 @@ use Illuminate\Support\Facades\Route;
 
  
 Route::get('/{any}', function () {
-    return redirect(config('app.frontend_url', 'http://localhost:9000/#/'));
+    $frontendUrl = rtrim(config('app.frontend_url', 'http://localhost:9000'), '/');
+    return redirect($frontendUrl . '/#/');
+
 })->where('any', '.*');

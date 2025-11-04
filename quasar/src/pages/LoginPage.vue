@@ -11,7 +11,7 @@
         <div class="left hide-on-mobile"></div> <!-- Hide left on mobile -->
         <div class="right">
           <div id="image">
-            <img src="../assets/logo.svg" alt="Houvast logo" class="logo" width="675" style="margin-bottom: -100px;" />
+            <img src="../assets/logo-thin.svg" alt="Houvast logo" class="logo" width="675" style="margin-bottom: -100px;" />
           </div>
 
           <div v-show="this.userType === null" class="content">
@@ -69,8 +69,8 @@
                   ]" v-model="form.email" autofocus></q-input>
                 </div>
                 <div class="form-element form-stack">
-                  <q-input :type="isPwd ? 'password' : 'text'" id="password" label="Wachtwoord"
-                    :rules="[val => val && val.length > 0 || 'Dit veld mag niet leeg zijn.']"
+                  <q-input :type="isPwd ? 'password' : 'text'" type="password" name="password" id="password"
+                    label="Wachtwoord" :rules="[val => val && val.length > 0 || 'Dit veld mag niet leeg zijn.']"
                     v-model="this.form.password">
                     <template v-slot:append>
                       <q-icon :name="isPwd ? 'visibility_off' : 'visibility'" class="cursor-pointer"
@@ -92,10 +92,14 @@
                   </div>
                   <div class="col">
                     <div id="qrDiv" class="qr-container">
-                      <q-inner-loading :showing="this.loadingQr">
-                        <q-spinner color="primary" class="spinner-size"></q-spinner>
+                      <q-inner-loading :showing="loadingQr">
+                        <q-spinner color="primary" class="spinner-size" />
                       </q-inner-loading>
+
+                      <!-- 👇 Add this -->
+                      <div v-if="!loadingQr && qrSvg" v-html="qrSvg"></div>
                     </div>
+
                   </div>
                 </div>
               </div>
@@ -145,16 +149,44 @@
                   </q-input>
                 </div>
               </div>
+              <!-- Show Recovery Codes Step -->
+              <div v-if="loginStep === 'showRecoveryCodes' && recoveryCodes && recoveryCodes.length > 0"
+                class="recovery-container">
+                <h2><b>Bewaar je herstelcodes veilig</b></h2>
+                <p class="text-subtitle1 q-mt-md">
+                  Deze codes kunnen worden gebruikt om in te loggen als je je 2FA-apparaat kwijtraakt.
+                  Bewaar ze op een veilige plaats. Elke code kan één keer worden gebruikt.
+                </p>
+
+                <!-- Virtual scroll list -->
+                <q-virtual-scroll class="q-mt-md rounded-borders bg-grey-1" style="max-height: 200px;"
+                  :items="recoveryCodes" separator bordered v-slot="{ item: code, index }">
+                  <q-item :key="index" dense>
+                    <q-item-section>{{ code }}</q-item-section>
+                  </q-item>
+                </q-virtual-scroll>
+              </div>
+
+
+
               <div class="form-element form-submit row justify-between items-start">
                 <div class="column">
-                  <q-btn icon-right="arrow_forward" :loading="loginLoading" class="login" type="submit"
-                    :label="getButtonLabel()" />
+                  <q-btn v-if="loginStep != 'showRecoveryCodes'" icon-right="arrow_forward" :loading="loginLoading"
+                    class="login" type="submit" :label="getButtonLabel()" />
 
+                  <q-btn v-if="loginStep === 'showRecoveryCodes'" color="primary" label="Voltooien"
+                    @click="completeLoginAfterRecovery()" />
                 </div>
                 <!-- TODO make it send a pw reset mail -->
                 <q-btn v-if="loginStep === 'credentials'" id="forgotPassword" flat color="primary"
                   label="Wachtwoord vergeten?" class="text-weight-medium no-caps q-pt-xs" @click="forgotPassword" />
+                <q-btn v-if="loginStep === 'showRecoveryCodes'" color="primary" icon="file_download"
+                  label="Download codes" @click="downloadRecoveryCodes" />
               </div>
+
+              <!-- Show Recovery Codes Step -->
+              <!-- Replace your showRecoveryCodes section with this: -->
+
 
             </q-form>
           </div>
@@ -176,13 +208,16 @@ export default defineComponent({
       form: {},
       isPwd: true,
       userType: null,
-      loginStep: 'credentials', // 'credentials', 'configure', 'authenticate', 'resetPassword'
+      loginStep: 'credentials', // 'credentials', 'configure', 'showRecoveryCodes', 'authenticate', 'resetPassword'
       twoFactorUser: null, // Store user data for 2FA flow
       loginLoading: false,
-      microsoftLoginUrl: null,
+      microsoftLoginUrl: 'placeholder',
       microsoftUrlLoading: true,
       officeClickLoading: false,
       loadingQr: false,
+      qrSvg: null,
+      recoveryCodes: [],
+
     }
   },
   mounted() {
@@ -215,13 +250,13 @@ export default defineComponent({
     });
   },
   beforeMount() {
-    get('auth/employee/microsoftUrl').then(response => {
-      this.microsoftLoginUrl = response.data;
-      this.microsoftUrlLoading = false;
-    }).catch(error => {
-      popup(error.response);
-      this.microsoftUrlLoading = false;
-    });
+    // get('auth/employee/microsoftUrl').then(response => {
+    //   this.microsoftLoginUrl = response.data;
+    //   this.microsoftUrlLoading = false;
+    // }).catch(error => {
+    //   popup(error.response);
+    //   this.microsoftUrlLoading = false;
+    // });
   },
   methods: {
     getCookie(name) {
@@ -233,7 +268,7 @@ export default defineComponent({
       if (domain) cookieStr += ` Domain=${domain};`;
       document.cookie = cookieStr;
     },
-    
+
     handleCsrfError() {
       localStorage.setItem('flashMessage', 'Token vernieuwd probeer opnieuw in te loggen');
       document.cookie = 'XSRF-TOKEN=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT';
@@ -241,7 +276,7 @@ export default defineComponent({
         window.location.reload();
       }, 100);
     },
-    
+
     handleOfficeError(error) {
       if (
         error.response.status === 401 &&
@@ -256,7 +291,7 @@ export default defineComponent({
       }
       return false;
     },
-    
+
     forgotPassword() {
       if (!this.form.email) {
         popup({ data: { message: "Vul een geldig e-mail adres in om wachtwoord te resetten." }, status: 400 });
@@ -279,7 +314,7 @@ export default defineComponent({
           hideLoading();
         });
     },
-    
+
     initLogin(type) {
       this.userType = type;
 
@@ -318,13 +353,14 @@ export default defineComponent({
       };
       checkUrl();
     },
-    
-    completeLogin(response) {
+
+    async completeLogin(response) {
       localStorage.setItem('token', response.data.token);
       localStorage.setItem('profile', JSON.stringify(response.data.user));
-      this.$router.push({ name: 'dashboard' });
+      await nextTick()   // wait for DOM/reactivity flush
+      this.$router.push({ name: 'dashboard' })
     },
-    
+
     twoFactorLoginProcedure() {
       this.loginLoading = true;
 
@@ -357,23 +393,23 @@ export default defineComponent({
           })
           .then(response => {
             if (response) {
-              document.getElementById('qrDiv').innerHTML = response.data.svg;
+              this.qrSvg = response.data.svg; // store it reactively
               this.loadingQr = false;
             }
           })
           .catch(error => {
             this.loginLoading = false;
             this.loadingQr = false;
-            
+
             if (error.response?.status === 419) {
               this.handleCsrfError();
               return;
             }
-            
+
             if (this.handleOfficeError(error)) {
               return;
             }
-            
+
             popup(error.response);
           });
       }
@@ -383,20 +419,25 @@ export default defineComponent({
         post('user/confirmed-two-factor-authentication', { code: this.form.twoFactorCode })
           .then(response => {
             if (response.status === 200) {
+              return get('user/two-factor-recovery-codes');
+            }
+          })
+          .then(response => {
+            if (response && response.data) { 
+              this.recoveryCodes = response.data;
+              this.loginStep = 'showRecoveryCodes';
               this.loginLoading = false;
-              this.completeLogin(response);
             }
           })
           .catch(error => {
             this.loginLoading = false;
-            
             if (error.response?.status === 419) {
               this.handleCsrfError();
               return;
             }
-            
             popup(error.response);
           });
+
       }
 
       // Step 3: Authenticate with 2FA code
@@ -419,12 +460,12 @@ export default defineComponent({
           })
           .catch(error => {
             this.loginLoading = false;
-            
+
             if (error.response?.status === 419) {
               this.handleCsrfError();
               return;
             }
-            
+
             popup(error.response);
           });
       }
@@ -443,17 +484,39 @@ export default defineComponent({
           })
           .catch(error => {
             this.loginLoading = false;
-            
+
             if (error.response?.status === 419) {
               this.handleCsrfError();
               return;
             }
-            
+
             popup(error.response);
           });
       }
     },
-    
+    downloadRecoveryCodes() {
+      if (!this.recoveryCodes?.length) {
+        popup({ data: { message: "Geen herstelcodes beschikbaar." } });
+        return;
+      }
+
+      const content = this.recoveryCodes.join('\n');
+      const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = '2FA-recovery-codes-Pearl-IT-Klantenportaal.txt';
+      link.click();
+      URL.revokeObjectURL(link.href);
+    },
+
+    completeLoginAfterRecovery() {
+      popup({
+        status: 200,
+        data: { message: '2FA ingesteld. Je bent nu ingelogd.' }
+      });
+      this.completeLogin({ data: { token: localStorage.getItem('token'), user: this.twoFactorUser } });
+    },
+
     getButtonLabel() {
       switch (this.loginStep) {
         case 'credentials':

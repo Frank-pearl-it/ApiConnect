@@ -54,6 +54,7 @@ return [
 
     'url' => env('APP_URL', 'http://localhost'),
     'frontend_url' => env('APP_FRONTEND_URL', 'http://localhost:9000'),
+    'allow_postman_testing' => env('ALLOW_POSTMAN_TESTING', false),
 
     /*
     |--------------------------------------------------------------------------
@@ -85,6 +86,11 @@ return [
 
     'faker_locale' => env('APP_FAKER_LOCALE', 'en_US'),
 
+
+    'pax8' => [
+        'client_id' => env('PAX8_CLIENT_ID'),
+        'client_secret' => env('PAX8_CLIENT_SECRET'),
+    ],
     /*
     |--------------------------------------------------------------------------
     | Encryption Key

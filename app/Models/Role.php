@@ -10,6 +10,7 @@ class Role extends Model
 {
     protected $fillable = [
         'name',
+        'description',
         'idCompany',
         'roleOrder',
         'permissions',
@@ -22,5 +23,11 @@ class Role extends Model
         'readTicketsOfRoles' => 'array',
         'getNotificationsOf' => 'array',
     ];
-  
+
+
+    public function users()
+    {
+        return $this->hasMany(User::class, 'idRole');
+    }
+
 }

@@ -3,7 +3,7 @@
  
 
     <!-- Foreground Content -->
-    <div class="content-wrapper column justify-between full-height">
+    <div>
 
       <!-- Top Section (Notifications + Contact) -->
       <div class="row justify-between items-start q-gutter-lg">
@@ -41,6 +41,7 @@
         </div>
       </div>
 
+      <q-separator class="q-my-xl" inset />
       <!-- Aanbiedingen Section at Bottom -->
       <div id="aanbiedingen-section" class="q-mt-xl">
         <div class="text-h6 text-primary text-bold q-mb-sm">Aanbiedingen</div>
@@ -88,5 +89,11 @@ export default defineComponent({
 
 .text-primary {
   color: #1565c0;
+}
+
+.q-separator {
+  margin: 0px;
+  padding: 0px;
+  margin-top: 50px;
 }
 </style>

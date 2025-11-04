@@ -94,9 +94,9 @@
     <!-- Page Content -->
     <q-page-container>
       <!-- ✅ Fixed Stable Logo -->
-      <div class="page-logo" :class="{ 'drawer-open': drawerOpen }">
+      <!-- <div class="page-logo" :class="{ 'drawer-open': drawerOpen }">
         <img src="~assets/logo-thin.svg" alt="Logo" class="page-logo-img" />
-      </div>
+      </div> -->
 
       <router-view @notification-updated="updateDashboardActionRequired" @checkNotifications="checkNotifications" />
     </q-page-container>
@@ -105,9 +105,9 @@
 
 <script>
 import { defineComponent } from 'vue'
-import { get } from '../../../resources/js/bootstrap.js'
+import { get, post } from '../../../resources/js/bootstrap.js'
 import { popup } from 'src/boot/custom-mixin.js'
-
+import { showLoading, hideLoading } from 'src/utils/loading.js'
 export default defineComponent({
   name: 'MainLayout',
 
@@ -179,10 +179,32 @@ export default defineComponent({
     },
 
     logout() {
-      localStorage.removeItem('profile')
-      localStorage.removeItem('token')
-      window.location.href = '/#/'
-    },
+      showLoading('Uitloggen...');
+      post('logout')
+        .catch(() => { }) // ignore if session already gone
+        .finally(async () => {
+          // Step 2: Clear all local auth data
+          localStorage.removeItem('profile');
+          localStorage.removeItem('token');
+
+          // Clear old Laravel cookies
+          ['XSRF-TOKEN', 'laravel_session'].forEach(name => {
+            document.cookie = `${name}=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT;`;
+          });
+
+          // Step 3: Request a *new* CSRF cookie for next login
+          try {
+            await get('/../sanctum/csrf-cookie');
+          } catch (e) {
+            console.warn('Kon CSRF-cookie niet vernieuwen:', e);
+          }
+
+          // Step 4: Redirect cleanly to login
+          hideLoading();
+          this.$router.replace({ name: 'login' });
+        });
+    }, 
+
 
     checkNotifications() {
       get('notifications')

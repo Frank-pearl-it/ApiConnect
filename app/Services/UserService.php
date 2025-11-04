@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Str;
+use App\Models\Company;
 
 
 class UserService
@@ -305,5 +306,25 @@ class UserService
             return $user->delete();
         }
         return false;
+    }
+
+     public function createFirstUserForCompany(Company $company): User
+    {
+        $password = Str::random(12);
+
+        $user = User::create([
+            'idCompany' => $company->id,
+            'name' => 'Admin',
+            'email' => $company->primary_email ?? 'admin@' . ($company->domain ?? 'example.com'),
+            'password' => bcrypt($password),
+        ]);
+
+        // Assign default admin role
+        $user->assignRole('admin');
+
+        // Send mail with login info
+        Mail::to($user->email)->send(new NewUserCredentials($user, $password));
+
+        return $user;
     }
 }
