@@ -12,26 +12,18 @@ class RoleMiddleware
     {
         $user = Auth::user();
 
-        // 1️⃣ Basic auth check
+        // Handle missing role gracefully
         if (!$user || !$user->role) {
             return response()->json(['message' => 'Unauthorized'], 401);
         }
 
-        $role = $user->role;
+        $permissions = $user->role->permissions ?? [];
 
-        // 2️⃣ Ensure user always has a company
-        if (!$user->idCompany) {
-            return response()->json(['message' => 'User missing company assignment'], 403);
-        }
-
-        // 3️⃣ Check if role has permission
-        $permissions = $role->permissions ?? [];
-
-        if (!in_array($requiredPermission, $permissions, true)) {
+        // ✅ Check by key existence instead of in_array
+        if (empty($permissions[$requiredPermission]) || $permissions[$requiredPermission] !== true) {
             return response()->json(['message' => 'Permission denied'], 403);
         }
 
-        // ✅ Everything okay
         return $next($request);
     }
 }

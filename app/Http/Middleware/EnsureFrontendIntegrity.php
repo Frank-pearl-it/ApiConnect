@@ -6,7 +6,6 @@ use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\Response;
 
 class EnsureFrontendIntegrity
@@ -34,7 +33,27 @@ class EnsureFrontendIntegrity
 
         // 3️⃣ Reload user + role from DB to ensure roles/permissions are up to date
         $freshUser = $user->fresh(['role']);
-        if (!$freshUser || !$freshUser->role || $freshUser->role->permissions !== $user->role->permissions) {
+        if (!$freshUser || !$freshUser->role) {
+            Log::warning('Missing or invalid role detected', [
+                'user_id' => $user->id,
+                'email' => $user->email,
+            ]);
+            return response()->json(['message' => 'Invalid role'], 403);
+        }
+
+        // 4️⃣ Ensure idCompany consistency between user and role
+        if ($freshUser->idCompany !== $freshUser->role->idCompany) {
+            Log::error('Company mismatch detected between user and role', [
+                'user_id' => $user->id,
+                'user_company' => $freshUser->idCompany,
+                'role_id' => $freshUser->role->id,
+                'role_company' => $freshUser->role->idCompany,
+            ]);
+            return response()->json(['message' => 'Company mismatch detected'], 403);
+        }
+
+        // 5️⃣ Compare permission sets (detects stale roles or tampering)
+        if ($freshUser->role->permissions !== $user->role->permissions) {
             Log::warning('Role/permission mismatch detected', [
                 'user_id' => $user->id,
                 'old_role' => $user->role->name ?? null,
@@ -43,16 +62,15 @@ class EnsureFrontendIntegrity
             return response()->json(['message' => 'Permission mismatch'], 403);
         }
 
-        // 4️⃣ Verify Sanctum token still active
+        // 6️⃣ Verify Sanctum token still active
         $token = $user->currentAccessToken();
         if (!$token) {
             return response()->json(['message' => 'Token missing or invalid'], 401);
         }
 
-        // 5️⃣ Optional: fingerprint validation
+        // 7️⃣ Optional fingerprint validation
         $strict = env('FRONTEND_STRICT_FINGERPRINT', false);
         $storedFingerprint = $token->abilities['fingerprint'] ?? null;
-
         $currentFingerprint = hash('sha256', $request->userAgent() . substr($request->ip(), 0, 7));
 
         if ($storedFingerprint && $storedFingerprint !== $currentFingerprint) {
@@ -69,7 +87,7 @@ class EnsureFrontendIntegrity
             }
         }
 
-        // 6️⃣ Optional HTTPS check (only enforce in production)
+        // 8️⃣ Optional HTTPS check (only enforce in production)
         if (app()->environment('production') && filter_var(env('FRONTEND_REQUIRE_HTTPS', true), FILTER_VALIDATE_BOOLEAN)) {
             if (!$request->isSecure()) {
                 Log::warning('Non-HTTPS request blocked on frontend route', [
@@ -81,8 +99,6 @@ class EnsureFrontendIntegrity
                 return response()->json(['message' => 'Insecure connection not allowed'], 403);
             }
         }
-
-
 
         return $next($request);
     }

@@ -7,21 +7,14 @@
         <q-btn icon="close" flat round dense v-close-popup />
       </q-card-section>
 
-      <!-- Table of Roles (now draggable) -->
+      <!-- Table of Roles -->
       <q-card-section class="relative-position">
-        <!-- 🔹 Loading overlay -->
         <q-inner-loading :showing="loading">
           <q-spinner color="primary" size="40px" />
           <div class="text-grey-7 q-mt-sm">Rollen en permissies laden...</div>
         </q-inner-loading>
 
-        <draggable
-          v-if="!loading"
-          v-model="roles"
-          item-key="id"
-          handle=".drag-handle"
-          @end="updateRoleOrder"
-        >
+        <draggable v-if="!loading" v-model="roles" item-key="id" handle=".drag-handle" @end="updateRoleOrder">
           <template #item="{ element }">
             <q-item dense bordered class="q-mb-xs bg-grey-1">
               <q-item-section avatar>
@@ -52,48 +45,12 @@
 
           <q-card-section class="q-gutter-md">
             <q-input v-model="form.name" label="Rolnaam" outlined dense />
-            <q-input
-              v-model.number="form.roleOrder"
-              label="Prioriteit"
-              outlined
-              dense
-              type="number"
-            />
+            <q-input v-model.number="form.roleOrder" label="Prioriteit" outlined dense type="number" />
 
-            <!-- Permissions grouped by category -->
-            <div
-              v-for="(group, category) in groupedPermissions"
-              :key="category"
-              class="q-mt-md q-pb-sm q-border-b"
-            >
-              <div class="row items-center q-mb-sm">
-                <div class="text-subtitle2 text-primary q-mr-sm">{{ category }}</div>
-                <q-checkbox
-                  :model-value="isCategoryFullyChecked(category)"
-                  :indeterminate="isCategoryPartiallyChecked(category)"
-                  @update:model-value="toggleCategory(category, $event)"
-                  dense
-                  color="primary"
-                  class="q-ml-sm"
-                />
-              </div>
-
-              <!-- Permissions grid -->
-              <div class="permissions-grid q-gutter-sm">
-                <div
-                  v-for="perm in group"
-                  :key="perm.id"
-                  class="permission-item"
-                >
-                  <q-checkbox
-                    :model-value="Array.isArray(form.permissions) && form.permissions.includes(perm.name)"
-                    @update:model-value="togglePermission(perm.name, $event)"
-                    :label="perm.description"
-                    dense
-                  />
-                </div>
-              </div>
-            </div>
+            <!-- Use subcomponents -->
+            <RolePermissions v-model="form" />
+            <RoleTicketAccess v-if="canEditAdvancedSections" v-model="form" />
+            <RoleNotifications v-if="canEditAdvancedSections" v-model="form" />
           </q-card-section>
 
           <q-card-actions align="right">
@@ -109,17 +66,27 @@
 <script>
 import draggable from 'vuedraggable'
 import { get, post, put, del } from '../../../resources/js/bootstrap.js'
+import { useRollenBeheerStore } from 'src/stores/useRollenBeheerStore.js'
+
+// Subcomponents
+import RolePermissions from './RollenBeheer/RolePermissions.vue'
+import RoleNotifications from './RollenBeheer/RoleNotifications.vue'
+import RoleTicketAccess from './RollenBeheer/RoleTicketAccess.vue'
 
 export default {
   name: 'RollenBeheer',
-  components: { draggable },
-  props: {
-    modelValue: { type: Boolean, required: true }
+  components: {
+    draggable,
+    RolePermissions,
+    RoleTicketAccess,
+    RoleNotifications
   },
+  props: { modelValue: { type: Boolean, required: true } },
   emits: ['update:modelValue'],
 
   data() {
     return {
+      store: useRollenBeheerStore(),
       roles: [],
       permissions: [],
       loading: true,
@@ -130,43 +97,76 @@ export default {
         id: null,
         name: '',
         roleOrder: 1,
-        permissions: []
+        permissions: {},
+        readTicketsOfRolesMap: {},
+        getNotificationsOf: {}
       }
     }
   },
 
   computed: {
     localDialog: {
-      get() {
-        return this.modelValue
-      },
-      set(val) {
-        this.$emit('update:modelValue', val)
-      }
+      get() { return this.modelValue },
+      set(val) { this.$emit('update:modelValue', val) }
     },
-    groupedPermissions() {
-      const groups = {}
-      this.permissions.forEach(p => {
-        if (!groups[p.category]) groups[p.category] = []
-        groups[p.category].push(p)
-      })
-      return groups
+    canEditAdvancedSections() {
+      return true
     }
   },
 
   methods: {
+    /* ---------- Helpers ---------- */
+    buildEmptyReadTicketsMap(excludeRoleId = null) {
+      const map = {}
+      this.roles.forEach(r => {
+        if (r.id === excludeRoleId) return
+        map[r.id] = { canView: false, canEdit: false, canClose: false, canReopen: false }
+      })
+      return map
+    },
+
+    buildDefaultNotifications() {
+      return {
+        ticketResponse: [],
+        ticketClosed: [],
+        ticketReopened: [],
+        ticketCreated: [],
+        productOrdered: []
+      }
+    },
+
+    mergeReadTicketsMap(baseMap, arrayFromApi = []) {
+      arrayFromApi.forEach(entry => {
+        if (baseMap[entry.roleId]) {
+          baseMap[entry.roleId] = {
+            ...baseMap[entry.roleId],
+            canView: !!entry.canView,
+            canEdit: !!entry.canEdit,
+            canClose: !!entry.canClose,
+            canReopen: !!entry.canReopen
+          }
+        }
+      })
+      return baseMap
+    },
+
+    normalizeNotifications(baseObj) {
+      const defaults = this.buildDefaultNotifications()
+      const result = { ...defaults }
+      if (baseObj && typeof baseObj === 'object') {
+        Object.keys(defaults).forEach(k => {
+          result[k] = Array.isArray(baseObj[k]) ? baseObj[k] : []
+        })
+      }
+      return result
+    },
+
     async loadRolesAndPermissions() {
       this.loading = true
       try {
-        const [rolesRes, permRes] = await Promise.all([get('roles'), get('roles/permissions')])
-
-        this.roles = rolesRes.data.map(role => ({
-          ...role,
-          permissions: Array.isArray(role.permissions)
-            ? role.permissions.map(p => (typeof p === 'object' ? p.name : p))
-            : []
-        }))
-        this.permissions = permRes.data
+        await this.store.load()
+        this.roles = this.store.roles
+        this.permissions = this.store.permissions
       } catch (err) {
         console.error('Fout bij laden rollen of permissies', err)
       } finally {
@@ -174,69 +174,63 @@ export default {
       }
     },
 
-    openAddDialog() {
-      const nextOrder =
-        this.roles.length > 0
-          ? Math.max(...this.roles.map(r => r.roleOrder || 0)) + 1
-          : 1
 
-      this.form = { id: null, name: '', roleOrder: nextOrder, permissions: [] }
+    /* ---------- Open dialogs ---------- */
+    openAddDialog() {
+      const nextOrder = this.roles.length
+        ? Math.max(...this.roles.map(r => r.roleOrder || 0)) + 1
+        : 1
+
+      this.form = {
+        id: null,
+        name: '',
+        roleOrder: nextOrder,
+        permissions: {},
+        readTicketsOfRolesMap: this.buildEmptyReadTicketsMap(null),
+        getNotificationsOf: this.buildDefaultNotifications()
+      }
+
       this.editMode = false
       this.editDialog = true
     },
 
     editRole(role) {
+      const baseMap = this.buildEmptyReadTicketsMap(role.id)
+      const readTicketsOfRolesMap = this.mergeReadTicketsMap(baseMap, role.readTicketsOfRoles)
+      const getNotificationsOf = this.normalizeNotifications(role.getNotificationsOf)
+
       this.form = {
         id: role.id,
         name: role.name,
         roleOrder: role.roleOrder,
-        permissions: Array.isArray(role.permissions)
-          ? role.permissions.map(p => (typeof p === 'object' ? p.name : p))
-          : []
+        permissions: { ...role.permissions },
+        readTicketsOfRolesMap,
+        getNotificationsOf
       }
+
       this.editMode = true
       this.editDialog = true
     },
 
-    togglePermission(permissionName, value) {
-      const index = this.form.permissions.indexOf(permissionName)
-      if (value && index === -1) this.form.permissions.push(permissionName)
-      else if (!value && index !== -1) this.form.permissions.splice(index, 1)
-    },
-
-    isCategoryFullyChecked(category) {
-      const group = this.groupedPermissions[category] || []
-      return group.length > 0 && group.every(p => this.form.permissions.includes(p.name))
-    },
-
-    isCategoryPartiallyChecked(category) {
-      const group = this.groupedPermissions[category] || []
-      const checkedCount = group.filter(p => this.form.permissions.includes(p.name)).length
-      return checkedCount > 0 && checkedCount < group.length
-    },
-
-    toggleCategory(category, value) {
-      const group = this.groupedPermissions[category] || []
-      if (value) {
-        group.forEach(p => {
-          if (!this.form.permissions.includes(p.name)) this.form.permissions.push(p.name)
-        })
-      } else {
-        this.form.permissions = this.form.permissions.filter(
-          name => !group.some(p => p.name === name)
-        )
-      }
-    },
-
+    /* ---------- Save / Delete / Order ---------- */
     async saveRole() {
       this.createLoading = true
+
+      const readTicketsArray = Object.entries(this.form.readTicketsOfRolesMap).map(([roleId, perms]) => ({
+        roleId: Number(roleId),
+        canView: !!perms.canView,
+        canEdit: !!perms.canEdit,
+        canClose: !!perms.canClose,
+        canReopen: !!perms.canReopen
+      }))
+
       const payload = {
         name: this.form.name,
         idCompany: 1,
         roleOrder: this.form.roleOrder,
         permissions: this.form.permissions,
-        readTicketsOfRoles: [],
-        getNotificationsOf: []
+        readTicketsOfRoles: readTicketsArray,
+        getNotificationsOf: this.form.getNotificationsOf
       }
 
       try {
@@ -285,38 +279,15 @@ export default {
 </script>
 
 <style scoped>
-.role-table {
-  table-layout: fixed;
-  width: 100%;
-}
-
-.q-card{
-  min-height: 120px;
-}
-
-.q-dialog__inner {
-  overflow-y: auto !important;
-}
-
 .text-primary {
   color: #1565c0;
 }
 
+.bg-grey-1 {
+  background-color: #f9f9f9;
+}
+
 .q-border-b {
   border-bottom: 1px solid #eee;
-}
-
-/* 🔹 Standardized checkbox grid layout */
-.permissions-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 6px 14px;
-  align-items: start;
-}
-
-.permission-item {
-  display: flex;
-  align-items: center;
-  padding: 4px 0;
 }
 </style>

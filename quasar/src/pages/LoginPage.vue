@@ -11,7 +11,8 @@
         <div class="left hide-on-mobile"></div> <!-- Hide left on mobile -->
         <div class="right">
           <div id="image">
-            <img src="../assets/logo-thin.svg" alt="Houvast logo" class="logo" width="675" style="margin-bottom: -100px;" />
+            <img src="../assets/logo-thin.svg" alt="Houvast logo" class="logo" width="675"
+              style="margin-bottom: -100px;" />
           </div>
 
           <div v-show="this.userType === null" class="content">
@@ -423,7 +424,7 @@ export default defineComponent({
             }
           })
           .then(response => {
-            if (response && response.data) { 
+            if (response && response.data) {
               this.recoveryCodes = response.data;
               this.loginStep = 'showRecoveryCodes';
               this.loginLoading = false;
@@ -514,8 +515,21 @@ export default defineComponent({
         status: 200,
         data: { message: '2FA ingesteld. Je bent nu ingelogd.' }
       });
-      this.completeLogin({ data: { token: localStorage.getItem('token'), user: this.twoFactorUser } });
-    },
+
+      post('login', {
+        email: this.form.email,
+        password: this.form.password
+      })
+        .then(response => {
+          console.info('[AFTER RECOVERY] Silent re-login succeeded');
+          this.completeLogin(response);
+        })
+        .catch(err => {
+          console.error('[AFTER RECOVERY] Silent re-login failed', err);
+          popup(err.response);
+        });
+    }
+    ,
 
     getButtonLabel() {
       switch (this.loginStep) {

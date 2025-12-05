@@ -105,7 +105,9 @@ export default defineConfig((/* ctx */) => {
     //   electronPreload: 'src-electron/electron-preload'
     //   bexManifestFile: 'src-bex/manifest.json
     // },
-
+    sourceFiles: {
+    store: 'src/stores/index'
+    },
     // https://v2.quasar.dev/quasar-cli-vite/developing-ssr/configuring-ssr
     ssr: {
       prodPort: 3000, // The default port that the production server should use

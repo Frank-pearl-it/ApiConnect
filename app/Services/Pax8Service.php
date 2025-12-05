@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Cache;
 class Pax8Service
 {
     private const BASE_URL = 'https://api.pax8.com/v1';
-    private const TOKEN_URL  = 'https://api.pax8.com/v1/token';
+    private const TOKEN_URL = 'https://api.pax8.com/v1/token';
     private const AUDIENCE = 'https://api.pax8.com';
 
     /**
@@ -106,33 +106,18 @@ class Pax8Service
                     'page' => $page,
                     'status' => $response->status(),
                     'body' => $response->body(),
-                    'headers' => $response->headers(),
                 ]);
                 break;
             }
 
             $responseData = $response->json();
-            
-            // Log the response structure for debugging
-            if ($page === 1) {
-                Log::info('📦 Response structure', [
-                    'keys' => array_keys($responseData ?? []),
-                    'has_data' => isset($responseData['data']),
-                    'data_count' => isset($responseData['data']) ? count($responseData['data']) : 0,
-                ]);
-            }
 
-            // Try different response structures
-            $products = $responseData['data'] ?? $responseData['content'] ?? $responseData;
-            
+            $products = $responseData['data'] ?? $responseData['content'] ?? [];
+            $totalPages = $responseData['totalPages'] ?? null;
+            $currentPage = $responseData['page'] ?? $page;
+
             if (empty($products)) {
                 Log::info("No products found on page {$page}. Ending sync.");
-                break;
-            }
-
-            // Ensure products is an array
-            if (!is_array($products)) {
-                Log::error('Products is not an array', ['type' => gettype($products)]);
                 break;
             }
 
@@ -162,21 +147,27 @@ class Pax8Service
                 }
             }
 
-            $page++;
-
-            // Safety check
-            if ($page > $maxPages) {
-                Log::warning("Reached max pages limit ({$maxPages})");
+            // Stop if we've processed all available pages
+            if ($totalPages !== null && $currentPage >= $totalPages) {
+                Log::info("Reached last page ({$totalPages}). Stopping.");
                 break;
             }
 
-        } while (!empty($products));
+            $page++;
+
+            if ($page > $maxPages) {
+                Log::warning("Reached max pages limit ({$maxPages}).");
+                break;
+            }
+
+        } while (true);
+
 
         Log::info("✅ Pax8 sync complete", [
             'total_products' => $totalCount,
             'pages_processed' => $page - 1,
         ]);
-        
+
         return $totalCount;
     }
 
@@ -195,7 +186,7 @@ class Pax8Service
             });
         }
 
-        return $query->orderBy('name')->paginate($filters['per_page'] ?? 50);
+        return $query->orderBy('name')->paginate($filters['per_page'] ?? 5000);
     }
 
     /**

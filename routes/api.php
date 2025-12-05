@@ -73,14 +73,14 @@ Route::post('sendResetLink', [AuthController::class, 'sendResetLink']);
 | These routes are protected by a middleware which confirms that the user is logged in and hasnt tampered with their permissions
 */
 
-Route::middleware(['auth:sanctum', 'frontend.integrity', 'role'])
+Route::middleware(['auth:sanctum', 'frontend.integrity'])
     ->group(function () {
         Route::post('resetPassword', [AuthController::class, 'resetPassword']);
 
         // ROLES & PERMISSIONS
         Route::get('roles/permissions', [RoleController::class, 'permissions']);
         Route::apiResource('roles', RoleController::class);
-        Route::prefix('pax8')->group(function () {
+        Route::prefix('pax8')->middleware('role:viewProducts')->group(function () {
             Route::get('products', [Pax8Controller::class, 'listProducts']);
             Route::get('products/{productId}', [Pax8Controller::class, 'getProduct']);
             Route::get('products/{productId}/pricing', [Pax8Controller::class, 'getProductPricing']);

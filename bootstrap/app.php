@@ -16,13 +16,10 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->alias([
             'restrict.integrations' => \App\Http\Middleware\RestrictIntegrationAccess::class,
-        ]);
-        $middleware->alias([
             'frontend.integrity' => \App\Http\Middleware\EnsureFrontendIntegrity::class,
-        ]);
-        $middleware->alias([
             'role' => \App\Http\Middleware\RoleMiddleware::class,
         ]);
+
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

@@ -48,11 +48,7 @@ export default defineComponent({
     data() {
         return {
             search: '',
-            users: [
-                { id: 1, name: 'Jan Jansen', email: 'jan@bedrijf.nl', role: 'Beheerder' },
-                { id: 2, name: 'Lisa Vermeer', email: 'lisa@bedrijf.nl', role: 'Gebruiker' },
-                { id: 3, name: 'Tom Peters', email: 'tom@bedrijf.nl', role: 'Gebruiker' },
-                { id: 4, name: 'Sanne de Vries', email: 'sanne@bedrijf.nl', role: 'Planner' }
+            users: [ 
             ],
             columns: [
                 { name: 'name', label: 'Naam', field: 'name', align: 'left', sortable: true, style: 'width: 180px;' },

@@ -35,48 +35,47 @@ class AuthController extends Controller
         //$this->biometricService = $biometricService;
     }
 
-    public function getMicrosoftUrl()
-    {
-        return response()->json($this->authService->getMicrosoftUrl());
-    }
-    public function microsoftCallback()
-    {
-        $microsoftAccount = $this->authService->getMicrosoftUser();
+    // public function getMicrosoftUrl()
+    // {
+    //     return response()->json($this->authService->getMicrosoftUrl());
+    // }
+    // public function microsoftCallback()
+    // {
+    //     $microsoftAccount = $this->authService->getMicrosoftUser();
 
-        if (!$microsoftAccount) {
-            Log::error('Missing Microsoft account in callback');
-            return $this->redirectWithError('Kon Microsoft-accountgegevens niet ophalen.');
-        }
+    //     if (!$microsoftAccount) {
+    //         Log::error('Missing Microsoft account in callback');
+    //         return $this->redirectWithError('Kon Microsoft-accountgegevens niet ophalen.');
+    //     }
 
-        try {
-            // findOrCreateUser gooit ValidationException bij bekende fouten
-            $user = $this->userService->findOrCreateUser($microsoftAccount);
+    //     try {
+    //         // findOrCreateUser gooit ValidationException bij bekende fouten
+    //         $user = $this->userService->findOrCreateUser($microsoftAccount);
 
-            $this->authService->authenticateUser($user);
-            $this->authService->setAuthCookies($user);
+    //         $this->authService->authenticateUser($user);
+    //         $this->authService->setAuthCookies($user);
 
-            return redirect()->away(rtrim(config('app.url'), '/') . '/#/callback');
+    //         return redirect()->away(rtrim(config('app.url'), '/') . '/#/callback');
 
-        } catch (ValidationException $e) {
-            // Validatiefouten → toon netjes aan gebruiker
-            $msg = collect($e->errors())->flatten()->implode(' ');
-            return $this->redirectWithError($msg);
+    //     } catch (ValidationException $e) {
+    //         // Validatiefouten → toon netjes aan gebruiker
+    //         $msg = collect($e->errors())->flatten()->implode(' ');
+    //         return $this->redirectWithError($msg);
 
-        } catch (\Throwable $e) {
-            // Log full details for debugging
-            Log::error('Microsoft callback unexpected error', [
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
+    //     } catch (\Throwable $e) {
+    //         // Log full details for debugging
+    //         Log::error('Microsoft callback unexpected error', [
+    //             'message' => $e->getMessage(),
+    //             'trace' => $e->getTraceAsString()
+    //         ]);
 
-            // Show a generic fallback message to the user
-            $msg = 'Er is een onbekende fout opgetreden. Probeer het later opnieuw.';
+    //         // Show a generic fallback message to the user
+    //         $msg = 'Er is een onbekende fout opgetreden. Probeer het later opnieuw.';
 
-            return $this->redirectWithError($msg);
-        }
+    //         return $this->redirectWithError($msg);
+    //     }
 
-    }
-
+    // } 
 
     /**
      * Redirect naar SPA met flash message in cookie (leesbaar door JS).
@@ -137,102 +136,102 @@ class AuthController extends Controller
     }
 
 
-    public function initBiometricLogin(Request $request)
-    {
-        $findUser = $this->userService->getUserByEmail($request['email']);
+    // public function initBiometricLogin(Request $request)
+    // {
+    //     $findUser = $this->userService->getUserByEmail($request['email']);
 
 
-        if ($findUser && !empty($findUser->publicKeyCredential)) {
+    //     if ($findUser && !empty($findUser->publicKeyCredential)) {
 
-            $allowedCredential = $this->biometricService->getUserCredential($findUser)->getPublicKeyCredentialDescriptor();
+    //         $allowedCredential = $this->biometricService->getUserCredential($findUser)->getPublicKeyCredentialDescriptor();
 
-            $data = [
-                'publicKeyCredentials' => $this->biometricService->generateLoginOptions($allowedCredential, $findUser),
-                'type' => 'login',
-                'idUser' => $findUser->id
-            ];
+    //         $data = [
+    //             'publicKeyCredentials' => $this->biometricService->generateLoginOptions($allowedCredential, $findUser),
+    //             'type' => 'login',
+    //             'idUser' => $findUser->id
+    //         ];
 
-            return response()->json($data, 200, [], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
-        }
+    //         return response()->json($data, 200, [], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+    //     }
 
-        return response()->json([
-            'messages' => ['Gebruiker niet gevonden of heeft geen vingerprint gekoppeld'],
-        ], 404);
-    }
-
-
-
-    public function handleBiometricsRegister(Request $request, $idUser)
-    {
-
-        $user = $this->userService->getUser($idUser);
-
-        if (!$user) {
-            return response()->json(['messages' => ['Er is geen gebruiker gevonden met deze gegevens.']], 404);
-        }
+    //     return response()->json([
+    //         'messages' => ['Gebruiker niet gevonden of heeft geen vingerprint gekoppeld'],
+    //     ], 404);
+    // }
 
 
-        return response()->json([
-            'publicKeyCredentials' => $this->biometricService->generateRegistrationOptions($user),
-            'type' => 'register',
-            'idUser' => Auth::id()
-        ]);
-    }
 
-    public function verifyBiometricRegistration(Request $request, $idUser)
-    {
-        $publicKeyCredentialCreationOptions = $this->biometricService->getPublicKeyCredentialCreationOptions($idUser);
-        $credentials = $this->biometricService->publicKeyCredentialLoader->load(json_encode($request->all()));
+    // public function handleBiometricsRegister(Request $request, $idUser)
+    // {
 
-        if ($credentials->response instanceof AuthenticatorAttestationResponse) {
-            $validator = new AuthenticatorAttestationResponseValidator();
-            try {
-                $publicKeyCredentialSource = $validator->check(
-                    $credentials->response,
-                    $publicKeyCredentialCreationOptions,
-                    'localhost'
-                );
+    //     $user = $this->userService->getUser($idUser);
 
-                $user = User::find($idUser);
-                $user->biometricsRegistered = 1;
-                $user->publicKeyCredential = json_encode($publicKeyCredentialSource);
+    //     if (!$user) {
+    //         return response()->json(['messages' => ['Er is geen gebruiker gevonden met deze gegevens.']], 404);
+    //     }
 
-                if ($user->save()) {
-                    return response()->json("Registratie succesvol", 200);
-                }
-            } catch (\Exception $e) {
-                return response()->json($e->getMessage());
-            }
-        }
-    }
 
-    public function verifyBiometricAuthentication(Request $request, $idUser)
-    {
-        $associatedUser = User::find($idUser);
-        $publicKeyCredentialSource = $this->biometricService->getUserCredential($associatedUser);
-        $credentials = $this->biometricService->publicKeyCredentialLoader->load(json_encode($request->all()));
-        if ($credentials->response instanceof AuthenticatorAssertionResponse) {
-            $validator = new AuthenticatorAssertionResponseValidator();
-            try {
-                $publicKeyCredentialSource = $validator->check(
-                    $publicKeyCredentialSource,
-                    $credentials->response,
-                    $this->biometricService->getPublicKeyCredentialCreationOptions($associatedUser->id),
-                    'hethouvast.pearl-it.nl',
-                    null
-                );
+    //     return response()->json([
+    //         'publicKeyCredentials' => $this->biometricService->generateRegistrationOptions($user),
+    //         'type' => 'register',
+    //         'idUser' => Auth::id()
+    //     ]);
+    // }
 
-                $this->authService->authenticateUser($associatedUser->first());
+    // public function verifyBiometricRegistration(Request $request, $idUser)
+    // {
+    //     $publicKeyCredentialCreationOptions = $this->biometricService->getPublicKeyCredentialCreationOptions($idUser);
+    //     $credentials = $this->biometricService->publicKeyCredentialLoader->load(json_encode($request->all()));
 
-                $token = $this->authService->generateToken($associatedUser->first());
+    //     if ($credentials->response instanceof AuthenticatorAttestationResponse) {
+    //         $validator = new AuthenticatorAttestationResponseValidator();
+    //         try {
+    //             $publicKeyCredentialSource = $validator->check(
+    //                 $credentials->response,
+    //                 $publicKeyCredentialCreationOptions,
+    //                 'localhost'
+    //             );
 
-                return response()->json(['token' => $token]);
-            } catch (Exception $e) {
-                return response()->json($e->getMessage());
-            }
-        }
-        return response()->json('Data incorrect response type', 400);
-    }
+    //             $user = User::find($idUser);
+    //             $user->biometricsRegistered = 1;
+    //             $user->publicKeyCredential = json_encode($publicKeyCredentialSource);
+
+    //             if ($user->save()) {
+    //                 return response()->json("Registratie succesvol", 200);
+    //             }
+    //         } catch (\Exception $e) {
+    //             return response()->json($e->getMessage());
+    //         }
+    //     }
+    // }
+
+    // public function verifyBiometricAuthentication(Request $request, $idUser)
+    // {
+    //     $associatedUser = User::find($idUser);
+    //     $publicKeyCredentialSource = $this->biometricService->getUserCredential($associatedUser);
+    //     $credentials = $this->biometricService->publicKeyCredentialLoader->load(json_encode($request->all()));
+    //     if ($credentials->response instanceof AuthenticatorAssertionResponse) {
+    //         $validator = new AuthenticatorAssertionResponseValidator();
+    //         try {
+    //             $publicKeyCredentialSource = $validator->check(
+    //                 $publicKeyCredentialSource,
+    //                 $credentials->response,
+    //                 $this->biometricService->getPublicKeyCredentialCreationOptions($associatedUser->id),
+    //                 'hethouvast.pearl-it.nl',
+    //                 null
+    //             );
+
+    //             $this->authService->authenticateUser($associatedUser->first());
+
+    //             $token = $this->authService->generateToken($associatedUser->first());
+
+    //             return response()->json(['token' => $token]);
+    //         } catch (Exception $e) {
+    //             return response()->json($e->getMessage());
+    //         }
+    //     }
+    //     return response()->json('Data incorrect response type', 400);
+    // }
 
 
     public static function changePsw(Request $request)
