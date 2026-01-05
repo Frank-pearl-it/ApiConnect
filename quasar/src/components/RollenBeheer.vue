@@ -98,8 +98,7 @@ export default {
         name: '',
         roleOrder: 1,
         permissions: {},
-        readTicketsOfRolesMap: {},
-        getNotificationsOf: {}
+        readTicketsOfRolesMap: {}, 
       }
     }
   },
@@ -186,8 +185,7 @@ export default {
         name: '',
         roleOrder: nextOrder,
         permissions: {},
-        readTicketsOfRolesMap: this.buildEmptyReadTicketsMap(null),
-        getNotificationsOf: this.buildDefaultNotifications()
+        readTicketsOfRolesMap: this.buildEmptyReadTicketsMap(null), 
       }
 
       this.editMode = false
@@ -196,16 +194,14 @@ export default {
 
     editRole(role) {
       const baseMap = this.buildEmptyReadTicketsMap(role.id)
-      const readTicketsOfRolesMap = this.mergeReadTicketsMap(baseMap, role.readTicketsOfRoles)
-      const getNotificationsOf = this.normalizeNotifications(role.getNotificationsOf)
+      const readTicketsOfRolesMap = this.mergeReadTicketsMap(baseMap, role.readTicketsOfRoles) 
 
       this.form = {
         id: role.id,
         name: role.name,
         roleOrder: role.roleOrder,
         permissions: { ...role.permissions },
-        readTicketsOfRolesMap,
-        getNotificationsOf
+        readTicketsOfRolesMap, 
       }
 
       this.editMode = true
@@ -229,8 +225,7 @@ export default {
         idCompany: 1,
         roleOrder: this.form.roleOrder,
         permissions: this.form.permissions,
-        readTicketsOfRoles: readTicketsArray,
-        getNotificationsOf: this.form.getNotificationsOf
+        readTicketsOfRoles: readTicketsArray, 
       }
 
       try {

@@ -33,7 +33,7 @@
         <q-item id="profileItem" class="q-my-sm">
           <q-item-section class="iconSection">
             <q-avatar color="primary" text-color="white">
-              <q-icon class="icons" name="account_circle" />
+              <q-icon class="icons"  size="md" name="account_circle" />
             </q-avatar>
           </q-item-section>
           <q-item-section class="textSection">

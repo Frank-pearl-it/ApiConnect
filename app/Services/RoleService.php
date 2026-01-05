@@ -38,8 +38,7 @@ class RoleService
             'idCompany' => $data['idCompany'],
             'roleOrder' => $data['roleOrder'],
             'permissions' => $data['permissions'] ?? [],
-            'readTicketsOfRoles' => $data['readTicketsOfRoles'] ?? [],
-            'getNotificationsOf' => $data['getNotificationsOf'] ?? [],
+            'readTicketsOfRoles' => $data['readTicketsOfRoles'] ?? [], 
         ]);
     }
 

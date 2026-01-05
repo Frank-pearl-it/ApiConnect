@@ -128,8 +128,7 @@ class RoleAndPermissionSeeder extends Seeder
                     'description' => $roleData['description'],
                     'roleOrder' => $roleData['roleOrder'],
                     'permissions' => $roleDefaults[$name] ?? [],
-                    'readTicketsOfRoles' => $readMap[$name] ?? [],
-                    'getNotificationsOf' => $notifications,
+                    'readTicketsOfRoles' => $readMap[$name] ?? [], 
                 ]
             );
         }

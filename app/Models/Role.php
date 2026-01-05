@@ -14,14 +14,12 @@ class Role extends Model
         'idCompany',
         'roleOrder',
         'permissions',
-        'readTicketsOfRoles',
-        'getNotificationsOf',
+        'readTicketsOfRoles', 
     ];
 
     protected $casts = [
         'permissions' => 'array',
-        'readTicketsOfRoles' => 'array',
-        'getNotificationsOf' => 'array',
+        'readTicketsOfRoles' => 'array', 
     ];
 
 

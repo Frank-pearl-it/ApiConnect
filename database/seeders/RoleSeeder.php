@@ -19,24 +19,21 @@ class RoleSeeder extends Seeder
                 'idCompany' => 1,
                 'roleOrder' => 1,
                 'permissions' => $permissions, // all permissions
-                'readTicketsOfRoles' => [],
-                'getNotificationsOf' => [],
+                'readTicketsOfRoles' => [], 
             ],
             [
                 'name' => 'Manager',
                 'idCompany' => 1,
                 'roleOrder' => 2,
                 'permissions' => ['view_user', 'edit_user'],
-                'readTicketsOfRoles' => [],
-                'getNotificationsOf' => [],
+                'readTicketsOfRoles' => [], 
             ],
             [
                 'name' => 'User',
                 'idCompany' => 1,
                 'roleOrder' => 3,
                 'permissions' => ['view_user'],
-                'readTicketsOfRoles' => [],
-                'getNotificationsOf' => [],
+                'readTicketsOfRoles' => [], 
             ],
         ];
 

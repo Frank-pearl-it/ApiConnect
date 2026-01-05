@@ -60,7 +60,7 @@ class AutoTaskCompanyController extends Controller
 
             $mappedData = $this->mapService->mapCompanyToRelatie($company);
 
-            // ✅ Properly structured log entry (human-readable + JSON formatted)
+            // Properly structured log entry (human-readable + JSON formatted)
             Log::info('Mapped company data for SnelStart:', [
                 'autotask_company_id' => $id,
                 'mapped_data' => $mappedData

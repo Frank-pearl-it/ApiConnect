@@ -5,7 +5,9 @@
     caption="Selecteer gebeurtenissen waarvan deze rol meldingen ontvangt"
     expand-separator
   >
-    <div v-if="store.loading" class="q-pa-md text-grey">
+
+  <!-- TO BE REPLACES WITH THE STATUS DISPLAY/ MAYBE PLACE IT WHERE AANBBIEDINGEN ARE? -->
+    <!-- <div v-if="store.loading" class="q-pa-md text-grey">
       <q-spinner size="24px" color="primary" /> Meldingen laden...
     </div>
 
@@ -14,8 +16,7 @@
         v-for="(rolesArr, eventType) in model.getNotificationsOf"
         :key="eventType"
         class="q-mb-md bg-grey-1 q-pa-sm rounded-borders"
-      >
-        <!-- Header row -->
+      > 
         <div class="row items-center q-mb-xs">
           <div class="text-subtitle2 text-primary q-mr-sm">{{ eventType }}</div>
           <q-checkbox
@@ -25,26 +26,22 @@
             dense color="primary"
           />
         </div>
-
-        <!-- Roles selection -->
-        <div class="row q-gutter-sm">
-          <!-- Current role -->
+ 
+        <div class="row q-gutter-sm"> 
           <q-checkbox
             :label="currentRoleName"
             :model-value="rolesArr.includes(model.id)"
             @update:model-value="val => toggleNotification(eventType, model.id, val)"
             dense
           />
-
-          <!-- Self user -->
+ 
           <q-checkbox
             label="Eigen gebruiker"
             :model-value="rolesArr.includes('selfUser')"
             @update:model-value="val => toggleNotification(eventType, 'selfUser', val)"
             dense
           />
-
-          <!-- Other roles -->
+ 
           <q-checkbox
             v-for="r in store.roles.filter(rr => rr.id !== model.id)"
             :key="r.id"
@@ -55,7 +52,7 @@
           />
         </div>
       </div>
-    </div>
+    </div> -->
   </q-expansion-item>
 </template>
 

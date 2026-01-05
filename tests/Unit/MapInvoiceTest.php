@@ -43,7 +43,6 @@ class MapInvoiceTest extends TestCase
                         "webServiceDate" => null,
                         "invoiceStatus" => 1,
                         "invoiceTaxMethodExternalCode" => null
-
                     ]
                 ],
                 "pageDetails" => [

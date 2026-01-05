@@ -64,7 +64,7 @@
               <div v-show="this.loginStep === 'credentials'">
                 <h2><b>Login</b></h2>
                 <div class="form-element form-stack">
-                  <q-input ref="emailInput" label="E-mail" type="email" name="email" :rules="[
+                  <q-input ref="emailInput" label="E-mail" type="email" name="email" :rules="[  
                     val => !!val || 'Dit veld mag niet leeg zijn.',
                     val => /^(?:[a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?\.)+[a-zA-Z]{2,})$/.test(val) || 'Geen geldig e-mailadres.'
                   ]" v-model="form.email" autofocus></q-input>
@@ -181,12 +181,10 @@
                 <!-- TODO make it send a pw reset mail -->
                 <q-btn v-if="loginStep === 'credentials'" id="forgotPassword" flat color="primary"
                   label="Wachtwoord vergeten?" class="text-weight-medium no-caps q-pt-xs" @click="forgotPassword" />
-                <q-btn v-if="loginStep === 'showRecoveryCodes'" color="primary" icon="file_download"
+                <q-btn v-if="loginStep === 'showRecoveryCodes'"  color="primary" icon="file_download" dense 
                   label="Download codes" @click="downloadRecoveryCodes" />
               </div>
 
-              <!-- Show Recovery Codes Step -->
-              <!-- Replace your showRecoveryCodes section with this: -->
 
 
             </q-form>

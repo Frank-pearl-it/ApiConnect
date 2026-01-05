@@ -49,8 +49,7 @@ class RoleController extends Controller
             'idCompany' => 'required|integer',
             'roleOrder' => 'required|integer',
             'permissions' => 'array|required',
-            'readTicketsOfRoles' => 'array|nullable',
-            'getNotificationsOf' => 'array|nullable',
+            'readTicketsOfRoles' => 'array|nullable', 
         ]);
 
         $role = $this->roleService->create($validated);
@@ -66,8 +65,7 @@ class RoleController extends Controller
             'name' => 'sometimes|string|max:255',
             'roleOrder' => 'sometimes|integer',
             'permissions' => 'array|nullable',
-            'readTicketsOfRoles' => 'array|nullable',
-            'getNotificationsOf' => 'array|nullable',
+            'readTicketsOfRoles' => 'array|nullable', 
         ]);
 
         $role = $this->roleService->update($id, $validated);

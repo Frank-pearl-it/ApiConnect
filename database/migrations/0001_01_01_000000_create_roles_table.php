@@ -18,8 +18,7 @@ return new class extends Migration {
             $table->integer('idCompany')->nullable();
             $table->integer('roleOrder');
             $table->json('permissions');
-            $table->json('readTicketsOfRoles');
-            $table->json('getNotificationsOf');
+            $table->json('readTicketsOfRoles'); 
             $table->timestamps();
 
         });
