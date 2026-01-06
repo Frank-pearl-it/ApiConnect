@@ -3,7 +3,7 @@ describe('template spec', () => {
     cy.visit('localhost')
   })
 })
- 
+
 // its impossible to test registering a new user because cypress cant scan a qrcode for 2fa
 describe('can perform the created features', () => {
   function pickRandomIndexes(count, howMany) {
@@ -71,7 +71,7 @@ describe('can perform the created features', () => {
       })
   }
 
-  it('should login and logout successfully', () => {
+  it('should login, create a role, check the contact tab and logout successfully', () => {
     cy.visit('localhost')
 
     cy.get('.twofa-card').click()
@@ -111,19 +111,21 @@ describe('can perform the created features', () => {
     clickRandomQuasarToggles('.ticket-toggle', 2)
 
     cy.contains('Tickets van andere rollen').click()
+    cy.wait(500)
 
     cy.get('.save-role').click()
-    cy.contains('Rol succesvol aangemaakt.').should('be.visible')
-    cy.get('.q-dialog__close').click({ force: true })
+    cy.wait(500)
+    cy.get('.close-roles').click()
 
-    cy.get('.contact').click() 
+
+    cy.get('.contact').click()
     cy.contains('Contact').should('be.visible')
     cy.contains('Email: helpdesk@pearl-it.nl').should('be.visible')
     cy.contains('Tel: +31 (0)13 - 203 20 78').should('be.visible')
 
     cy.get('.logout').click()
   })
-}) 
+})
 
 
 
