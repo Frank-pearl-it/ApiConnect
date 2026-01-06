@@ -98,7 +98,7 @@ describe('can perform the created features', () => {
     // Click 2 random actual toggles inside the role toggle grid/blocks
     clickRandomQuasarToggles('.role-toggle', 2)
 
-    cy.get('.role-expand').click()
+    cy.contains('Permissies').click()
 
     // ---- Ticket access section
     cy.get('.ticket-expand').click()
@@ -110,16 +110,17 @@ describe('can perform the created features', () => {
     // Click 2 random ticket toggles (actual toggle inners, not the wrapper div)
     clickRandomQuasarToggles('.ticket-toggle', 2)
 
-    cy.get('.ticket-expand').click()
+    cy.contains('Tickets van andere rollen').click()
 
     cy.get('.save-role').click()
-    cy.contains('Rol succesvol opgeslagen').should('be.visible')
+    cy.contains('Rol succesvol aangemaakt.').should('be.visible')
+    cy.get('.q-dialog__close').click({ force: true })
 
-    cy.get('.contact').click()
+    cy.get('.contact').click() 
     cy.contains('Contact').should('be.visible')
-
     cy.contains('Email: helpdesk@pearl-it.nl').should('be.visible')
     cy.contains('Tel: +31 (0)13 - 203 20 78').should('be.visible')
+
     cy.get('.logout').click()
   })
 }) 
