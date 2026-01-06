@@ -16,7 +16,7 @@
         </q-tab-panel>
 
         <q-tab-panel name="extern">
-          <ProductenExtern />
+          <!-- <ProductenExtern /> -->
         </q-tab-panel>
 
       </q-tab-panels>
