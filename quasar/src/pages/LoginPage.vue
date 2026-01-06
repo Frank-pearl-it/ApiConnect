@@ -369,6 +369,7 @@ export default defineComponent({
           .then(response => {
             // Check if user has 2FA enabled
             if (response.data.two_factor === false) {
+              // checking two_factor is completely irrelevant here, because fortify has it hardcoded to respond two_factor true if 2fa is enabled, even if not confirmed yet
               // User needs to configure 2FA
               this.loginStep = 'configure';
               this.loginLoading = false;

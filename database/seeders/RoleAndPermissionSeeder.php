@@ -107,17 +107,7 @@ class RoleAndPermissionSeeder extends Seeder
             ],
             'Medewerker' => [],
             'Kijker' => [],
-        ];
-
-        // ---- DEFAULT NOTIFICATIONS ----
-        $notifications = [
-            "ticketResponse" => ["self"],
-            "ticketClosed" => ["self"],
-            "ticketReopened" => ["self"],
-            "ticketCreated" => ["self"],
-            "productOrdered" => ["self"],
-        ];
-
+        ]; 
         // ---- CREATE / UPDATE ROLES ----
         foreach ($roles as $roleData) {
             $name = $roleData['name'];
