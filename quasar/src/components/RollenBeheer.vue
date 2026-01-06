@@ -70,6 +70,7 @@ import { useRollenBeheerStore } from 'src/stores/useRollenBeheerStore.js'
 // Subcomponents
 import RolePermissions from './RollenBeheer/RolePermissions.vue' 
 import RoleTicketAccess from './RollenBeheer/RoleTicketAccess.vue'
+import { popup } from 'src/boot/custom-mixin.js'
 
 export default {
   name: 'RollenBeheer',
@@ -211,13 +212,16 @@ export default {
           res = await put(`roles/${this.form.id}`, payload)
           const index = this.roles.findIndex(r => r.id === this.form.id)
           if (index !== -1) this.roles.splice(index, 1, res.data)
+          popup('Rol succesvol bijgewerkt.', 200)
         } else {
           res = await post('roles', payload)
           this.roles.push(res.data)
+          popup(res.data.message, 200)
         }
         this.editDialog = false
       } catch (err) {
         console.error('Fout bij opslaan rol', err)
+        popup(err.response)
       } finally {
         this.createLoading = false
       }
