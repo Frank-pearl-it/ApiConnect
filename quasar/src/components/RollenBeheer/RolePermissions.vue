@@ -5,6 +5,7 @@
     caption="Beheer de rechten voor deze rol"
     expand-separator
     default-closed
+    class="role-expand"
   >
     <div v-if="store.loading" class="q-pa-md text-grey">
       <q-spinner size="24px" color="primary" /> Permissies laden...
@@ -17,7 +18,7 @@
         class="q-mt-md q-pb-sm q-border-b"
       >
         <!-- Category Header -->
-        <div class="row items-center q-mb-sm">
+        <div class="row items-center q-mb-sm role-header">
           <div class="text-subtitle2 text-primary q-mr-sm">{{ category }}</div>
           <q-checkbox
             :model-value="isCategoryFullyChecked(category)"
@@ -28,7 +29,7 @@
         </div>
 
         <!-- Permissions Grid -->
-        <div class="permissions-grid q-gutter-sm">
+        <div class="permissions-grid q-gutter-sm role-toggle">
           <div
             v-for="perm in group"
             :key="perm.id"

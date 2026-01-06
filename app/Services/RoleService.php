@@ -36,6 +36,7 @@ class RoleService
         return Role::create([
             'name' => $data['name'],
             'idCompany' => $data['idCompany'],
+            'description' => $data['description'] ?? null,
             'roleOrder' => $data['roleOrder'],
             'permissions' => $data['permissions'] ?? [],
             'readTicketsOfRoles' => $data['readTicketsOfRoles'] ?? [], 

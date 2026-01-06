@@ -8,7 +8,7 @@
                 <!-- Left side (Rollen Beheer button) -->
                 <template #top-left>
                     <q-btn color="primary" icon="admin_panel_settings" label="Rollen Beheer" @click="showRolesDialog = true"
-                        class="q-mr-sm" />
+                        class="q-mr-sm roles-button" />
                 </template>
 
                 <!-- Right side (search + add button) -->

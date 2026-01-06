@@ -3,7 +3,7 @@
     icon="visibility"
     label="Tickets van andere rollen"
     caption="Bepaal van welke rollen deze rol de tickets van kan bekijken of bewerken"
-    expand-separator
+    expand-separator class="ticket-expand"
   >
     <div v-if="store.loading" class="q-pa-md text-grey">
       <q-spinner size="24px" color="primary" /> Rollen laden...
@@ -16,7 +16,7 @@
         class="q-mb-sm bg-grey-1 q-pa-sm rounded-borders"
       >
         <!-- Role header + group toggle -->
-        <div class="row items-center q-mb-xs">
+        <div class="row items-center q-mb-xs ticket-header">
           <div class="text-subtitle2 text-primary q-mr-sm">{{ targetRole.name }}</div>
           <q-checkbox
             :model-value="isRoleFullyChecked(targetRole.id)"
@@ -27,7 +27,7 @@
         </div>
 
         <!-- Permission toggles -->
-        <div class="row q-gutter-md">
+        <div class="row q-gutter-md ticket-toggle">
           <q-checkbox
             v-model="model.readTicketsOfRolesMap[targetRole.id].canView"
             label="Bekijken"

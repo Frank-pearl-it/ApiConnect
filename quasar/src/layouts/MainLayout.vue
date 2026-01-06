@@ -4,7 +4,7 @@
     <q-header class="text-white bg-primary">
       <q-toolbar>
         <!-- Hamburger Menu -->
-        <q-btn dense flat round icon="menu" @click="drawerOpen = !drawerOpen" class="q-mr-sm q-md-none q-lg-none" />
+        <q-btn dense flat round icon="menu" @click="drawerOpen = !drawerOpen" class="q-mr-sm q-md-none q-lg-none burger" />
         <div class="header-title">Pearl-IT Klantenportaal</div>
 
         <q-space />
@@ -70,7 +70,7 @@
       <div class="q-mt-auto q-pb-sm">
         <q-list>
           <!-- Contact item -->
-          <q-item clickable v-ripple ref="contactItem">
+          <q-item clickable v-ripple ref="contactItem" class="contact">
             <q-item-section class="iconSection">
               <q-avatar color="primary" text-color="white">
                 <q-icon name="contact_support" />
@@ -90,7 +90,7 @@
           </q-item>
 
           <!-- Uitloggen item -->
-          <q-item clickable v-ripple @click="logout" class="q-my-sm">
+          <q-item clickable v-ripple @click="logout" class="q-my-sm logout">
             <q-item-section class="iconSection">
               <q-avatar color="primary" text-color="white">
                 <q-icon name="logout" />
@@ -112,7 +112,7 @@
         <img src="~assets/logo-thin.svg" alt="Logo" class="page-logo-img" />
       </div> -->
 
-      <router-view @notification-updated="updateDashboardActionRequired" @checkNotifications="checkNotifications" />
+      <router-view  />
     </q-page-container>
   </q-layout>
 </template>
@@ -251,24 +251,7 @@ export default defineComponent({
         });
     },
 
-
-    checkNotifications() {
-      get('notifications')
-        .then(response => {
-          this.dashboardActionRequired = response.data.length > 0
-        })
-        .catch(error => {
-          popup(
-            'error',
-            'Error',
-            error.response?.data?.message || 'Fout bij het ophalen van notificaties'
-          )
-        })
-    },
-
-    updateDashboardActionRequired(hasNotifications) {
-      this.dashboardActionRequired = hasNotifications
-    },
+ 
 
     triggerDownload(link) {
       if (!link) return

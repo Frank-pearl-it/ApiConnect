@@ -36,8 +36,7 @@ export const useRollenBeheerStore = defineStore('rollenBeheerStore', {
           ...r,
           permissions: typeof r.permissions === 'object' ? r.permissions : {},
           readTicketsOfRoles: Array.isArray(r.readTicketsOfRoles) ? r.readTicketsOfRoles : [],
-          getNotificationsOf: this.normalizeNotifications(r.getNotificationsOf)
-        }))
+         }))
 
         this.permissions = permRes.data
       } catch (err) {
@@ -107,27 +106,7 @@ export const useRollenBeheerStore = defineStore('rollenBeheerStore', {
       })
       return map
     },
-
-    buildDefaultNotifications() {
-      return {
-        ticketResponse: [],
-        ticketClosed: [],
-        ticketReopened: [],
-        ticketCreated: [],
-        productOrdered: []
-      }
-    },
-
-    normalizeNotifications(baseObj) {
-      const defaults = this.buildDefaultNotifications()
-      const result = { ...defaults }
-      if (baseObj && typeof baseObj === 'object') {
-        Object.keys(defaults).forEach(k => {
-          result[k] = Array.isArray(baseObj[k]) ? baseObj[k] : []
-        })
-      }
-      return result
-    },
+ 
 
     createEmptyRoleTemplate() {
       const nextOrder = this.roles.length > 0
@@ -141,8 +120,7 @@ export const useRollenBeheerStore = defineStore('rollenBeheerStore', {
         idCompany: 1,
         roleOrder: nextOrder,
         permissions: {},
-        readTicketsOfRolesMap: this.buildEmptyReadTicketsMap(null),
-        getNotificationsOf: this.buildDefaultNotifications()
+        readTicketsOfRolesMap: this.buildEmptyReadTicketsMap(null), 
       }
     }
   }

@@ -3,7 +3,7 @@
     <q-card style="min-width: 1100px; max-height: 90vh;" class="scroll">
       <!-- Title -->
       <q-card-section class="row items-center justify-between">
-        <div class="text-h6 text-primary">Rollenbeheer</div>
+        <div class="text-h6 text-primary">Rollen Beheer</div>
         <q-btn icon="close" flat round dense v-close-popup />
       </q-card-section>
 
@@ -32,7 +32,7 @@
         </draggable>
 
         <div v-if="!loading" class="text-right q-mt-md">
-          <q-btn color="primary" icon="add" label="Nieuwe rol" @click="openAddDialog" :loading="createLoading" />
+          <q-btn color="primary" icon="add" label="Nieuwe rol" @click="openAddDialog" :loading="createLoading" class="roles-button" />
         </div>
       </q-card-section>
 
@@ -44,18 +44,17 @@
           </q-card-section>
 
           <q-card-section class="q-gutter-md">
-            <q-input v-model="form.name" label="Rolnaam" outlined dense />
+            <q-input v-model="form.name" label="Rolnaam" outlined dense class="rolename" />
             <q-input v-model.number="form.roleOrder" label="Prioriteit" outlined dense type="number" />
-
+            <q-input v-model="form.description" label="Omschrijving" outlined dense type="text" class="role-description"/>
             <!-- Use subcomponents -->
             <RolePermissions v-model="form" />
-            <RoleTicketAccess v-if="canEditAdvancedSections" v-model="form" />
-            <RoleNotifications v-if="canEditAdvancedSections" v-model="form" />
+            <RoleTicketAccess v-if="canEditAdvancedSections" v-model="form" /> 
           </q-card-section>
 
           <q-card-actions align="right">
             <q-btn flat label="Annuleren" v-close-popup />
-            <q-btn color="primary" :label="editMode ? 'Opslaan' : 'Toevoegen'" @click="saveRole" />
+            <q-btn color="primary" class="save-role" :label="editMode ? 'Opslaan' : 'Toevoegen'" @click="saveRole" />
           </q-card-actions>
         </q-card>
       </q-dialog>
@@ -69,8 +68,7 @@ import { get, post, put, del } from '../../../resources/js/bootstrap.js'
 import { useRollenBeheerStore } from 'src/stores/useRollenBeheerStore.js'
 
 // Subcomponents
-import RolePermissions from './RollenBeheer/RolePermissions.vue'
-import RoleNotifications from './RollenBeheer/RoleNotifications.vue'
+import RolePermissions from './RollenBeheer/RolePermissions.vue' 
 import RoleTicketAccess from './RollenBeheer/RoleTicketAccess.vue'
 
 export default {
@@ -78,8 +76,7 @@ export default {
   components: {
     draggable,
     RolePermissions,
-    RoleTicketAccess,
-    RoleNotifications
+    RoleTicketAccess, 
   },
   props: { modelValue: { type: Boolean, required: true } },
   emits: ['update:modelValue'],
@@ -122,17 +119,7 @@ export default {
         map[r.id] = { canView: false, canEdit: false, canClose: false, canReopen: false }
       })
       return map
-    },
-
-    buildDefaultNotifications() {
-      return {
-        ticketResponse: [],
-        ticketClosed: [],
-        ticketReopened: [],
-        ticketCreated: [],
-        productOrdered: []
-      }
-    },
+    }, 
 
     mergeReadTicketsMap(baseMap, arrayFromApi = []) {
       arrayFromApi.forEach(entry => {
@@ -147,18 +134,7 @@ export default {
         }
       })
       return baseMap
-    },
-
-    normalizeNotifications(baseObj) {
-      const defaults = this.buildDefaultNotifications()
-      const result = { ...defaults }
-      if (baseObj && typeof baseObj === 'object') {
-        Object.keys(defaults).forEach(k => {
-          result[k] = Array.isArray(baseObj[k]) ? baseObj[k] : []
-        })
-      }
-      return result
-    },
+    }, 
 
     async loadRolesAndPermissions() {
       this.loading = true
@@ -223,6 +199,7 @@ export default {
       const payload = {
         name: this.form.name,
         idCompany: 1,
+        description: this.form.description,
         roleOrder: this.form.roleOrder,
         permissions: this.form.permissions,
         readTicketsOfRoles: readTicketsArray, 
